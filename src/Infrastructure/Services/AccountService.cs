@@ -22,17 +22,6 @@ public class AccountService(UserManager<ApplicationUser> userManager,
 
         var user = await userManager.FindByEmailAsync(email);
 
-        // ========================= LOG ===============
-        var claims = claimsPrincipal.Claims.Select(c => new
-        {
-            c.Type,
-            c.Value
-        });
-
-        string json = JsonSerializer.Serialize(claims, new JsonSerializerOptions { WriteIndented = true });
-        Console.WriteLine(json);
-        // =========================
-
         if (user == null)
         {
             var newUser = new ApplicationUser
