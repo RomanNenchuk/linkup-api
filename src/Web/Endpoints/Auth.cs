@@ -1,9 +1,12 @@
 using Application.Auth.Commands.LoginWithGoogle;
+using Application.Auth.Commands.RefreshToken;
+using Application.Common;
 using Application.Common.Interfaces;
 using Infrastructure.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Web.Infrastructure;
@@ -15,7 +18,8 @@ public class Auth : EndpointGroupBase
     public override void Map(WebApplication app)
     {
         app.MapGroup(this)
-           .MapGet(Login, "login/google");
+           .MapGet(Login, "login/google")
+           .MapPost(RefreshToken, "refresh-token");
 
         app.MapGet("callback/google", GoogleCallback)
            .WithName("GoogleLoginCallback");
@@ -45,5 +49,15 @@ public class Auth : EndpointGroupBase
 
         cookieService.SetCookie("refreshToken", result.Value);
         return Results.Redirect(returnUrl);
+    }
+
+    private async Task<IResult> RefreshToken(HttpContext context, ISender sender, ICookieService cookieService)
+    {
+        var refreshToken = cookieService.GetCookie("refreshToken");
+        if (string.IsNullOrEmpty(refreshToken))
+            return Results.BadRequest("Refresh token is missing");
+
+        var result = await sender.Send(new RefreshTokenCommand(refreshToken));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 }

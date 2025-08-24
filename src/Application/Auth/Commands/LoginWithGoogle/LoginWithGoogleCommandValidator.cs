@@ -2,10 +2,10 @@ using FluentValidation;
 
 namespace Application.Auth.Commands.LoginWithGoogle;
 
-public class CreateLeagueCommandValidator : AbstractValidator<LoginWithGoogleCommand>
+public class LoginWithGoogleCommandValidator : AbstractValidator<LoginWithGoogleCommand>
 {
 
-    public CreateLeagueCommandValidator()
+    public LoginWithGoogleCommandValidator()
     {
         RuleFor(v => v.ClaimsPrincipal)
             .NotNull()

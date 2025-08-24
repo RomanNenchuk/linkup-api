@@ -1,14 +1,18 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Application.Common;
 using Application.Common.Interfaces;
 using Application.Common.Models;
+using AutoMapper;
+using Domain.Entities;
+using Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Services;
 
-public class TokenService(IConfiguration configuration) : ITokenService
+public class TokenService(IConfiguration configuration, IMapper mapper, ApplicationDbContext dbContext) : ITokenService
 {
     public string GenerateAccessToken(User user)
     {
@@ -51,6 +55,23 @@ public class TokenService(IConfiguration configuration) : ITokenService
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public async Task<Result<string>> IssueRefreshToken(User user)
+    {
+        var refreshToken = GenerateRefreshToken(user);
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(
+                Convert.ToDouble(configuration["Jwt:RefreshToken:ExpireDays"]!)),
+            UserId = user.Id
+        });
+
+        var dbResult = await dbContext.SaveChangesAsync() > 0;
+        return dbResult
+            ? Result<string>.Success(refreshToken)
+            : Result<string>.Failure("Failed to save refresh token", 400);
     }
 
 }
