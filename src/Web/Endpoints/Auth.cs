@@ -1,12 +1,11 @@
 using Application.Auth.Commands.LoginWithGoogle;
 using Application.Auth.Commands.RefreshToken;
-using Application.Common;
+using Application.Auth.Commands.Register;
 using Application.Common.Interfaces;
 using Infrastructure.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Web.Infrastructure;
@@ -18,14 +17,18 @@ public class Auth : EndpointGroupBase
     public override void Map(WebApplication app)
     {
         app.MapGroup(this)
-           .MapGet(Login, "login/google")
-           .MapPost(RefreshToken, "refresh-token");
+           .MapGet(LoginWithGoogle, "login/google")
+           .MapPost(RefreshToken, "refresh-token")
+           .MapPost(Register, "register")
+           .MapPost(ResendVerification, "resend-verification")
+           .MapPost(ConfirmEmail, "confirm-email")
+           .MapPost(SendTestEmail, "send-test-email");
 
         app.MapGet("callback/google", GoogleCallback)
            .WithName("GoogleLoginCallback");
     }
 
-    private IResult Login([FromQuery] string returnUrl, LinkGenerator linkGenerator,
+    private IResult LoginWithGoogle([FromQuery] string returnUrl, LinkGenerator linkGenerator,
         SignInManager<ApplicationUser> signInManager, HttpContext context)
     {
         var properties = signInManager.ConfigureExternalAuthenticationProperties("Google",
@@ -59,5 +62,33 @@ public class Auth : EndpointGroupBase
 
         var result = await sender.Send(new RefreshTokenCommand(refreshToken));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> Register(RegisterCommand command, ISender sender, ICookieService cookieService)
+    {
+        var result = await sender.Send(command);
+        if (!result.IsSuccess || result.Value?.RefreshToken == null || result.Value?.AccessToken == null)
+            return Results.BadRequest(result.Error);
+
+        cookieService.SetCookie("refreshToken", result.Value.RefreshToken);
+        return Results.Ok(result.Value.AccessToken);
+    }
+
+    private async Task<IResult> SendTestEmail(HttpContext context, ISender sender, ICookieService cookieService, IEmailService emailService)
+    {
+        await emailService.SendEmailAsync("rmntemporary1@gmail.com", "Hello!", "<p>Це тестовий лист</p>");
+        return Results.Ok("Email sent!");
+    }
+
+    private async Task<IResult> ResendVerification(HttpContext context, ISender sender, ICookieService cookieService, IEmailService emailService)
+    {
+        await emailService.SendEmailAsync("rmntemporary1@gmail.com", "Hello!", "<p>Це тестовий лист</p>");
+        return Results.Ok("Email sent!");
+    }
+
+    private async Task<IResult> ConfirmEmail(HttpContext context, ISender sender, ICookieService cookieService, IEmailService emailService)
+    {
+        await emailService.SendEmailAsync("rmntemporary1@gmail.com", "Hello!", "<p>Це тестовий лист</p>");
+        return Results.Ok("Email sent!");
     }
 }

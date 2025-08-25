@@ -11,6 +11,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Event> Events { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,6 +25,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             entity
                 .HasIndex(rt => rt.Token)
+                .IsUnique();
+        });
+
+        builder.Entity<VerificationToken>(entity =>
+        {
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(vt => vt.UserId);
+
+            entity
+                .HasIndex(vt => vt.Token)
                 .IsUnique();
         });
     }

@@ -1,6 +1,7 @@
 namespace Application.Common.DTOs;
 
-public sealed record TokenPair(
-    string AccessToken,
-    string RefreshToken
-);
+public class TokenPair
+{
+    public string RefreshToken { get; set; } = null!;
+    public string AccessToken { get; set; } = null!;
+}

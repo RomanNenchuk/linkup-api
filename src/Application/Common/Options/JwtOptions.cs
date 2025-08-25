@@ -6,18 +6,25 @@ public class JwtOptions
 
     public AccessTokenOptions AccessToken { get; set; } = null!;
     public RefreshTokenOptions RefreshToken { get; set; } = null!;
-    public string Issuer { get; set; } = string.Empty;
-    public string Audience { get; set; } = string.Empty;
+    public VerificationTokenOptions VerificationToken { get; set; } = null!;
+    public string Issuer { get; set; } = null!;
+    public string Audience { get; set; } = null!;
 
     public class AccessTokenOptions
     {
-        public string Key { get; set; } = string.Empty;
+        public string Key { get; set; } = null!;
         public int ExpireMinutes { get; set; }
     }
 
     public class RefreshTokenOptions
     {
-        public string Key { get; set; } = string.Empty;
+        public string Key { get; set; } = null!;
         public int ExpireDays { get; set; }
+    }
+
+    public class VerificationTokenOptions
+    {
+        public string Key { get; set; } = null!;
+        public int ExpireMinutes { get; set; }
     }
 }

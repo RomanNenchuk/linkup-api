@@ -18,6 +18,8 @@ var configuration = builder.Configuration;
 
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<ClientOptions>(
+    builder.Configuration.GetSection(ClientOptions.SectionName));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICookieService, CookieService>();
 
@@ -31,7 +33,7 @@ builder.Services.AddCors(opt =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
-            .WithOrigins(builder.Configuration["ClientUrl"]!);
+            .WithOrigins(builder.Configuration["Client:Url"]!);
     });
 });
 
@@ -72,6 +74,9 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
 });
+
+builder.Services.Configure<SmtpSettings>(configuration.GetSection("SmtpSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddMediatR(cfg =>

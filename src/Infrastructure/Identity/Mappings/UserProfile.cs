@@ -1,4 +1,3 @@
-// Infrastructure/Identity/Mappings/UserProfile.cs
 using Application.Common.Models;
 using AutoMapper;
 
