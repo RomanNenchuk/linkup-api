@@ -95,10 +95,19 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
         return Result<User>.Success(mapper.Map<User>(user));
     }
 
+    public async Task<Result> LogoutAsync(string refreshToken)
+    {
+        var token = await dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.Token == refreshToken);
+        if (token == null) return Result.Failure("Refresh token not found", 400);
+        token.RevokedAt = DateTime.UtcNow;
+        var result = await dbContext.SaveChangesAsync() > 0;
+        return result ? Result.Success() : Result.Failure("Failed to revoke refresh token", 400);
+    }
+
     public async Task<Result<string>> RefreshTokenAsync(string refreshToken)
     {
-        var tokenInfo = await dbContext.RefreshTokens.Select(x => new { x.UserId, x.Token, x.IsExpired })
-            .FirstOrDefaultAsync(x => x.Token == refreshToken && !x.IsExpired);
+        var tokenInfo = await dbContext.RefreshTokens.Select(x => new { x.UserId, x.Token, x.ExpiresAt })
+            .FirstOrDefaultAsync(r => r.Token == refreshToken && r.ExpiresAt > DateTime.UtcNow);
 
         if (tokenInfo?.UserId == null) return Result<string>.Failure("Failed to refresh token", 400);
 

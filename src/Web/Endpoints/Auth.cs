@@ -1,6 +1,7 @@
 using Application.Auth.Commands.ComfirmEmail;
 using Application.Auth.Commands.Login;
 using Application.Auth.Commands.LoginWithGoogle;
+using Application.Auth.Commands.Logout;
 using Application.Auth.Commands.RefreshToken;
 using Application.Auth.Commands.Register;
 using Application.Auth.Commands.ResendEmailVerification;
@@ -24,7 +25,8 @@ public class Auth : EndpointGroupBase
         app.MapGroup(this)
             .MapGet(LoginWithGoogle, "login/google")
             .MapPost(Login, "login")
-            .MapPost(Register, "register");
+            .MapPost(Register, "register")
+            .MapPost(RefreshToken, "refresh-token");
 
         app.MapGroup(this)
             .MapGet("callback/google", GoogleCallback)
@@ -32,11 +34,11 @@ public class Auth : EndpointGroupBase
 
         app.MapGroup(this)
            .RequireAuthorization()
-           .MapPost(RefreshToken, "refresh-token")
            .MapPost(ResendEmailVerification, "resend-verification")
            .MapPost(ConfirmEmail, "confirm-email")
            .MapGet(GetCooldownRemainingSeconds, "verification-cooldown")
-           .MapGet(GetCurrentUserInfo, "me");
+           .MapGet(GetCurrentUserInfo, "me")
+           .MapGet(Logout, "logout");
     }
 
     private IResult LoginWithGoogle([FromQuery] string returnUrl, LinkGenerator linkGenerator,
@@ -117,5 +119,19 @@ public class Auth : EndpointGroupBase
     {
         var result = await sender.Send(new GetCurrentUserInfoQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> Logout(ISender sender, ICookieService cookieService)
+    {
+        var refreshToken = cookieService.GetCookie("refreshToken");
+        if (string.IsNullOrEmpty(refreshToken))
+            return Results.BadRequest("Refresh token is missing");
+
+        var result = await sender.Send(new LogoutCommand(refreshToken));
+        if (!result.IsSuccess) return Results.BadRequest(result.Error);
+
+        cookieService.DeleteCookie("refreshToken");
+
+        return Results.Ok();
     }
 }

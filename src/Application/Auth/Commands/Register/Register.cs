@@ -37,7 +37,7 @@ public class RegisterCommandHandler(
             return Result<TokenPair>.Failure(verificationTokenResult.Error!, verificationTokenResult.Code);
 
         var confirmationUrl = $"{_clientOptions.Url}/confirm?verificationToken={verificationTokenResult.Value}";
-        await emailService.SendEmailAsync(creationResult.Value.Email, "Email confirmation", confirmationUrl);
+        // await emailService.SendEmailAsync(creationResult.Value.Email, "Email confirmation", confirmationUrl);
 
         var refreshTokenResult = await tokenService.IssueRefreshToken(creationResult.Value);
         if (!refreshTokenResult.IsSuccess || string.IsNullOrEmpty(refreshTokenResult.Value))
