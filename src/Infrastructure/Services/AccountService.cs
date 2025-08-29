@@ -20,7 +20,15 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
         var token = await dbContext.VerificationTokens.FirstOrDefaultAsync(x =>
             x.Type == VerificationTokenType.EmailVerification && x.Token == verificationToken);
 
-        if (token == null) return Result.Failure("Failed to verify email", 400);
+        if (token == null || token.IsUsed) return Result.Failure("Failed to verify email", 400);
+        token.IsUsed = true;
+        await dbContext.SaveChangesAsync();
+
+        var user = await userManager.FindByIdAsync(token.UserId);
+        if (user == null) return Result.Failure("Failed to verify email", 400);
+        user.EmailConfirmed = true;
+        var result = await userManager.UpdateAsync(user);
+
         return Result.Success();
     }
 

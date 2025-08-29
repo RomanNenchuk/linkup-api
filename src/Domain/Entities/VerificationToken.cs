@@ -7,4 +7,5 @@ public class VerificationToken : BaseToken
 {
     public VerificationTokenType Type { get; set; }
     public string UserId { get; set; } = null!;
+    public bool IsUsed { get; set; }
 }
