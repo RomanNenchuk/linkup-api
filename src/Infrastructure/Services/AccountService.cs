@@ -20,16 +20,22 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
         var token = await dbContext.VerificationTokens.FirstOrDefaultAsync(x =>
             x.Type == VerificationTokenType.EmailVerification && x.Token == verificationToken);
 
-        if (token == null || token.IsUsed) return Result.Failure("Failed to verify email", 400);
-        token.IsUsed = true;
-        await dbContext.SaveChangesAsync();
+        if (token == null) return Result.Failure("Failed to verify email", 400);
 
         var user = await userManager.FindByIdAsync(token.UserId);
         if (user == null) return Result.Failure("Failed to verify email", 400);
-        user.EmailConfirmed = true;
-        var result = await userManager.UpdateAsync(user);
+        if (user.EmailConfirmed) return Result.Failure("Email is already confirmed", 400);
 
-        return Result.Success();
+        if (token.IsUsed) return Result.Failure("Token is already used", 400);
+        token.IsUsed = true;
+        await dbContext.SaveChangesAsync();
+
+        var result = await userManager.ConfirmEmailAsync(user, verificationToken);
+        if (result.Succeeded)
+            return Result.Success();
+
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+        return Result.Failure(errors, 400);
     }
 
     public async Task<Result<User>> CreateUserAsync(string email, string displayName, string password)
@@ -53,6 +59,13 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
     public async Task<Result<User>> GetUserByIdAsync(string id)
     {
         var applicationUser = await userManager.FindByIdAsync(id);
+        if (applicationUser == null) return Result<User>.Failure("User not found", 404);
+        return Result<User>.Success(mapper.Map<User>(applicationUser));
+    }
+
+    public async Task<Result<User>> GetUserByEmailAsync(string email)
+    {
+        var applicationUser = await userManager.FindByEmailAsync(email);
         if (applicationUser == null) return Result<User>.Failure("User not found", 404);
         return Result<User>.Success(mapper.Map<User>(applicationUser));
     }
@@ -148,5 +161,39 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
         }
 
         return newUser;
+    }
+
+    public async Task<Result> ResetPasswordAsync(string verificationToken, string newPassword)
+    {
+        var token = await dbContext.VerificationTokens.FirstOrDefaultAsync(x =>
+            x.Type == VerificationTokenType.PasswordReset && x.Token == verificationToken);
+
+        if (token == null) return Result.Failure("Failed to reset password", 400);
+
+        if (token.IsUsed) return Result.Failure("Token is already used", 400);
+        token.IsUsed = true;
+        await dbContext.SaveChangesAsync();
+
+        var user = await userManager.FindByIdAsync(token.UserId);
+        if (user == null) return Result.Failure("User not found", 404);
+
+        var result = await userManager.ResetPasswordAsync(user, verificationToken, newPassword);
+        if (result.Succeeded)
+            return Result.Success();
+
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+        return Result.Failure(errors, 400);
+    }
+
+    public async Task<Result<string>> GeneratePasswordResetTokenAsync(string email)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user == null)
+            return Result<string>.Failure("User not found", 404);
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+        return string.IsNullOrEmpty(token)
+            ? Result<string>.Failure("Failed to generate token", 400)
+            : Result<string>.Success(token);
     }
 }

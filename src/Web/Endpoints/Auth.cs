@@ -1,16 +1,20 @@
-using Application.Auth.Commands.ComfirmEmail;
+using System.Net;
+using Application.Auth.Commands.ConfirmEmail;
+using Application.Auth.Commands.ForgotPassword;
 using Application.Auth.Commands.Login;
 using Application.Auth.Commands.LoginWithGoogle;
 using Application.Auth.Commands.Logout;
 using Application.Auth.Commands.RefreshToken;
 using Application.Auth.Commands.Register;
 using Application.Auth.Commands.ResendEmailVerification;
+using Application.Auth.Commands.ResetPassword;
 using Application.Auth.Queries.GetCurrentUserInfo;
 using Application.Auth.Queries.GetEmailVerificationCooldown;
 using Application.Common.Interfaces;
 using Infrastructure.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +29,10 @@ public class Auth : EndpointGroupBase
         app.MapGroup(this)
             .MapGet(LoginWithGoogle, "login/google")
             .MapPost(Login, "login")
+            .MapPost(ForgotPassword, "forgot-password")
+            .MapPost(ResetPassword, "reset-password")
             .MapPost(Register, "register")
+            .MapPost(ConfirmEmail, "confirm-email")
             .MapPost(RefreshToken, "refresh-token");
 
         app.MapGroup(this)
@@ -35,7 +42,6 @@ public class Auth : EndpointGroupBase
         app.MapGroup(this)
            .RequireAuthorization()
            .MapPost(ResendEmailVerification, "resend-verification")
-           .MapPost(ConfirmEmail, "confirm-email")
            .MapGet(GetCooldownRemainingSeconds, "verification-cooldown")
            .MapGet(GetCurrentUserInfo, "me")
            .MapGet(Logout, "logout");
@@ -87,6 +93,20 @@ public class Auth : EndpointGroupBase
         return Results.Ok(result.Value.AccessToken);
     }
 
+    private async Task<IResult> ForgotPassword(ForgotPasswordCommand command, ISender sender)
+    {
+        var result = await sender.Send(command);
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> ResetPassword(ResetPasswordCommand command, ISender sender)
+    {
+        command.VerificationToken = Base64UrlEncoder.Decode(command.VerificationToken);
+
+        var result = await sender.Send(command);
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
     private async Task<IResult> Login(LoginCommand command, ISender sender, ICookieService cookieService)
     {
         var result = await sender.Send(command);
@@ -111,6 +131,8 @@ public class Auth : EndpointGroupBase
 
     private async Task<IResult> ConfirmEmail(ConfirmEmailCommand command, ISender sender)
     {
+        command.VerificationToken = Base64UrlEncoder.Decode(command.VerificationToken);
+
         var result = await sender.Send(command);
         return result.IsSuccess ? Results.Ok("Email confirmed successfully") : Results.BadRequest(result.Error);
     }
