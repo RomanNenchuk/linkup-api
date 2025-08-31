@@ -44,7 +44,7 @@ public class Auth : EndpointGroupBase
            .MapPost(ResendEmailVerification, "resend-verification")
            .MapGet(GetCooldownRemainingSeconds, "verification-cooldown")
            .MapGet(GetCurrentUserInfo, "me")
-           .MapGet(Logout, "logout");
+           .MapPost(Logout, "logout");
     }
 
     private IResult LoginWithGoogle([FromQuery] string returnUrl, LinkGenerator linkGenerator,
