@@ -18,6 +18,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<Post>(entity =>
+        {
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(p => p.AuthorId);
+        });
+        base.OnModelCreating(builder);
+
         builder.Entity<RefreshToken>(entity =>
         {
             entity.HasOne<ApplicationUser>()

@@ -77,6 +77,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.Configure<SmtpSettings>(configuration.GetSection("SmtpSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IUserService, CurrentUser>();
 builder.Services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 

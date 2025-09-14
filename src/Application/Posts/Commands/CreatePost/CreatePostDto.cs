@@ -1,14 +1,12 @@
-namespace Domain.Entities;
+namespace Application.Posts.Commands.CreatePost;
 
-public class Post
+public class CreatePostDto
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
     public string AuthorId { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string? Content { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? Address { get; set; }
-    public List<PostPhoto> PostPhotos { get; set; } = [];
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public List<string>? PhotoUrls { get; set; }
 }
