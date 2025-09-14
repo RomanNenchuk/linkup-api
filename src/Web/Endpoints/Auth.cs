@@ -1,4 +1,3 @@
-using System.Net;
 using Application.Auth.Commands.ConfirmEmail;
 using Application.Auth.Commands.ForgotPassword;
 using Application.Auth.Commands.Login;

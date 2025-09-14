@@ -9,7 +9,8 @@ namespace Infrastructure.Persistence;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser>(options), IApplicationDbContext
 {
-    public DbSet<Event> Events { get; set; } = null!;
+    public DbSet<Post> Posts { get; set; } = null!;
+    public DbSet<PostPhoto> PostPhotos { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
