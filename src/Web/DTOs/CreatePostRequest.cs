@@ -9,5 +9,5 @@ public class CreatePostRequest
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? Address { get; set; }
-    public List<IFormFile>? PostPhotos { get; set; }
+    public IFormFileCollection? PostPhotos { get; set; }
 }
