@@ -1,9 +1,11 @@
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
+using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetPosts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Ocsp;
 using Web.DTOs;
 using Web.Infrastructure;
 
@@ -18,7 +20,8 @@ public class Posts : EndpointGroupBase
 
         app.MapGroup(this)
            .RequireAuthorization()
-           .MapPost(CreatePost, "");
+           .MapPost(CreatePost, "")
+           .MapPost(ToggleReaction, "{postId}/toggle-reaction");
     }
 
     private async Task<IResult> CreatePost(
@@ -74,5 +77,16 @@ public class Posts : EndpointGroupBase
         });
 
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> ToggleReaction(ISender sender, [FromRoute] string postId, [FromBody] ToggleLikeRequest request)
+    {
+        var result = await sender.Send(new ToggleReactionCommand
+        {
+            PostId = postId,
+            IsLiked = request.IsLiked
+        });
+
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 }

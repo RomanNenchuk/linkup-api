@@ -127,4 +127,24 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
     }
 
+    public async Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked)
+    {
+        var post = await dbContext.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+        if (post == null) return Result.Failure("Post does not exist");
+
+        var reaction = await dbContext.PostReactions.FirstOrDefaultAsync(x => x.PostId == postId && x.UserId == userId);
+        if (reaction != null)
+        {
+            dbContext.Remove(reaction);
+        }
+        else
+        {
+            dbContext.Add(new PostReaction { UserId = userId, PostId = postId });
+        }
+        var result = await dbContext.SaveChangesAsync() > 0;
+
+        return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
+
+    }
+
 }
