@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Post> Posts { get; set; } = null!;
     public DbSet<PostPhoto> PostPhotos { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public DbSet<PostReaction> PostReactions { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -31,6 +32,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(p => p.Location).HasColumnType("geography (Point,4326)");
             // Generalized Search Tree
             entity.HasIndex(p => p.Location).HasMethod("GIST");
+        });
+
+        builder.Entity<PostReaction>(entity =>
+        {
+            entity.HasKey(pr => new { pr.PostId, pr.UserId });
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(pr => pr.UserId);
         });
 
         builder.Entity<RefreshToken>(entity =>

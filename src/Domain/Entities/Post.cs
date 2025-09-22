@@ -11,5 +11,6 @@ public class Post
     public Point? Location { get; set; }
     public string? Address { get; set; }
     public List<PostPhoto> PostPhotos { get; set; } = [];
+    public List<PostReaction> PostReactions { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
