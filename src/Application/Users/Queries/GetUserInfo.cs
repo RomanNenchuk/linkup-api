@@ -4,16 +4,17 @@ using Application.Common.Interfaces;
 using AutoMapper;
 using MediatR;
 
-namespace Application.Auth.Queries.GetCurrentUserInfo;
+namespace Application.Auth.Queries.GetUserInfo;
 
-public class GetCurrentUserInfoQuery : IRequest<Result<UserDto>>
+public class GetUserInfoQuery : IRequest<Result<UserDto>>
 {
+    public string UserId { get; set; } = null!;
 }
 
-public class GetCurrentUserInfoQueryHandler(ICurrentUserService currentUserService, IAccountService accountService, IMapper mapper)
-    : IRequestHandler<GetCurrentUserInfoQuery, Result<UserDto>>
+public class GetUserInfoQueryHandler(ICurrentUserService currentUserService, IAccountService accountService, IMapper mapper)
+    : IRequestHandler<GetUserInfoQuery, Result<UserDto>>
 {
-    public async Task<Result<UserDto>> Handle(GetCurrentUserInfoQuery request, CancellationToken ct)
+    public async Task<Result<UserDto>> Handle(GetUserInfoQuery request, CancellationToken ct)
     {
         string userId = currentUserService.Id!;
         var userResult = await accountService.GetUserByIdAsync(userId);

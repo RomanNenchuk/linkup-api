@@ -1,6 +1,6 @@
 namespace Application.Common.Interfaces;
 
-public interface IUserService
+public interface ICurrentUserService
 {
     string? Id { get; }
     string? Email { get; }

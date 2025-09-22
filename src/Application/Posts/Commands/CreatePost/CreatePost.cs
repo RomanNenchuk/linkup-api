@@ -15,12 +15,12 @@ public class CreatePostCommand : IRequest<Result<string>>
     public List<CloudinaryUploadDto>? ImageRecords { get; set; }
 }
 
-public class CreatePostCommandHandler(IPostService postService, IUserService userService)
+public class CreatePostCommandHandler(IPostService postService, ICurrentUserService currentUserService)
     : IRequestHandler<CreatePostCommand, Result<string>>
 {
     public async Task<Result<string>> Handle(CreatePostCommand request, CancellationToken ct)
     {
-        var userId = userService.Id!;
+        var userId = currentUserService.Id!;
         var createPostDto = new CreatePostDto
         {
             AuthorId = userId,

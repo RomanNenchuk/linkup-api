@@ -10,7 +10,7 @@ public class ResendEmailVerificationCommand : IRequest<Result>
 }
 
 public class ResendEmailVerificationCommandHandler(
-    IUserService userService,
+    ICurrentUserService currentUserService,
     IEmailService emailService,
     IAccountService accountService,
     IVerificationLinkService linkService,
@@ -20,7 +20,7 @@ public class ResendEmailVerificationCommandHandler(
 
     public async Task<Result> Handle(ResendEmailVerificationCommand request, CancellationToken ct)
     {
-        var userId = userService.Id;
+        var userId = currentUserService.Id;
         if (userId == null) return Result.Failure("Anauthorized", 401);
         var currentUserResult = await accountService.GetUserByIdAsync(userId);
         if (!currentUserResult.IsSuccess || currentUserResult.Value == null)
