@@ -13,6 +13,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PostPhoto> PostPhotos { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<PostReaction> PostReactions { get; set; } = null!;
+    public DbSet<UserFollow> UserFollows { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -22,7 +23,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Post>(entity =>
         {
             entity.HasOne<ApplicationUser>()
-                .WithMany()
+                .WithMany(u => u.Posts)
                 .HasForeignKey(p => p.AuthorId);
 
             entity.HasIndex(p => new { p.CreatedAt, p.Id });
@@ -41,6 +42,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(pr => pr.UserId);
+        });
+
+        builder.Entity<UserFollow>(entity =>
+        {
+            entity.HasKey(f => new { f.FollowerId, f.FolloweeId });
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany(u => u.Followings)
+                .HasForeignKey(f => f.FollowerId);
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany(u => u.Followers)
+                .HasForeignKey(f => f.FolloweeId);
         });
 
         builder.Entity<RefreshToken>(entity =>

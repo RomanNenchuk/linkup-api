@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Application.Common.DTOs;
 using Application.Common.Models;
 
 namespace Application.Common.Interfaces;
@@ -14,4 +15,6 @@ public interface IAccountService
     Task<Result<User>> GetUserByIdAsync(string id);
     Task<Result<User>> GetUserByEmailAsync(string email);
     Task<Result> LogoutAsync(string refreshToken);
+    Task<Result> ToggleFollowAsync(string followerId, string followeeId, bool IsFollowed);
+    Task<Result<UserProfieDto>> GetUserInformationAsync(string userId, string? currentUserId = null);
 }

@@ -3,6 +3,7 @@ using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetPosts;
+using Application.Users.Commands.ToggleFollow;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Ocsp;

@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Application.Common;
+using Application.Common.DTOs;
 using Application.Common.Exceptions;
 using Application.Common.Interfaces;
 using Application.Common.Models;
 using AutoMapper;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
@@ -206,4 +208,43 @@ public class AccountService(UserManager<ApplicationUser> userManager, ITokenServ
             await userManager.UpdateAsync(user);
         }
     }
+
+    public async Task<Result> ToggleFollowAsync(string followerId, string followeeId, bool IsFollowed)
+    {
+        var followee = await userManager.FindByIdAsync(followeeId);
+        if (followee == null) return Result.Failure("Followee not found");
+
+        var existingUserFollow = await dbContext.UserFollows.FirstOrDefaultAsync(x =>
+            x.FollowerId == followerId && x.FolloweeId == followeeId);
+
+        if (existingUserFollow == null)
+            dbContext.UserFollows.Add(new UserFollow { FollowerId = followerId, FolloweeId = followeeId });
+        else dbContext.Remove(existingUserFollow);
+
+        var result = await dbContext.SaveChangesAsync() > 0;
+
+        return result ? Result.Success() : Result.Failure("Failed to toggle follow state");
+
+    }
+    public async Task<Result<UserProfieDto>> GetUserInformationAsync(string userId, string? currentUserId)
+    {
+        var user = await dbContext.Users
+            .Include(u => u.Followers)
+            .Include(u => u.Followings)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return Result<UserProfieDto>.Failure("User not found");
+
+        var userInfo = mapper.Map<UserProfieDto>(user);
+        userInfo.FollowersCount = user.Followers.Count;
+        userInfo.FollowingCount = user.Followings.Count;
+
+        if (currentUserId != null) userInfo.IsFollowing = user.Followers.Any(f => f.FollowerId == currentUserId);
+        else userInfo.IsFollowing = false;
+
+
+        return Result<UserProfieDto>.Success(userInfo);
+    }
+
 }
