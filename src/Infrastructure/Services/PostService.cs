@@ -6,10 +6,12 @@ using Application.Posts.Commands.CreatePost;
 using Application.Posts.Queries.GetPosts;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 
@@ -60,52 +62,109 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         }
     }
 
-    public async Task<Result<PagedResult<PostResponseDto>>> GetPostsAsync(GetPostsQuery query, CancellationToken ct)
+    public async Task<Result<PagedResult<PostResponseDto>>> GetTopPostsAsync(GetPostsQuery query, CancellationToken ct)
     {
+        int offset = 0;
+        if (!string.IsNullOrEmpty(query.Cursor) && int.TryParse(query.Cursor, out var parsed))
+            offset = parsed;
+
+
+        // var cacheKey = $"best-posts:{query.PageSize}:{offset}";
+
+        // if (cache.TryGetValue(cacheKey, out PagedResult<PostResponseDto>? cached))
+        //     return Result<PagedResult<PostResponseDto>>.Success(cached);
+
+        var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
+
         var postsQuery = dbContext.Posts
             .Include(p => p.PostPhotos)
             .Include(p => p.PostReactions)
-            .AsQueryable();
+            .Where(p => p.CreatedAt >= oneWeekAgo)
+            .OrderByDescending(p => p.PostReactions.Count)
+            .ThenByDescending(p => p.CreatedAt);
 
-        // Sorting
-        postsQuery = query.Ascending
-            ? postsQuery.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id)
-            : postsQuery.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id);
+        var posts = await postsQuery
+            .Skip(offset)
+            .Take(query.PageSize)
+            .ToListAsync(ct);
 
-        // Cursor
+        var result = await ConvertToPagedResult(posts, query, ct);
+
+        result.NextCursor = posts.Count == query.PageSize
+            ? (offset + query.PageSize).ToString()
+            : null;
+
+        // cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+        // {
+        //     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        // });
+
+        return Result<PagedResult<PostResponseDto>>.Success(result);
+    }
+
+    public async Task<Result<PagedResult<PostResponseDto>>> GetFollowingPostsAsync(GetPostsQuery query, CancellationToken ct)
+    {
+        if (currentUser?.Id is null)
+            return Result<PagedResult<PostResponseDto>>.Success(new PagedResult<PostResponseDto> { Items = [] });
+
+        var followeeIds = dbContext.UserFollows
+            .Where(f => f.FollowerId == currentUser.Id)
+            .Select(f => f.FolloweeId);
+
+        var postsQuery = dbContext.Posts
+            .Include(p => p.PostPhotos)
+            .Include(p => p.PostReactions)
+            .Where(p => followeeIds.Contains(p.AuthorId))
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenByDescending(p => p.Id).AsQueryable(); ;
+
         if (!string.IsNullOrEmpty(query.Cursor))
-        {
-            var cursorParts = query.Cursor.Split('|');
-            if (cursorParts.Length == 2 &&
-                DateTime.TryParse(cursorParts[0], null,
-                System.Globalization.DateTimeStyles.RoundtripKind,
-                out var cursorDate))
-            {
-                var cursorId = cursorParts[1];
-                if (query.Ascending)
-                    postsQuery = postsQuery.Where(p =>
-                        p.CreatedAt > cursorDate ||
-                        (p.CreatedAt == cursorDate && string.Compare(p.Id, cursorId) > 0));
-                else
-                    postsQuery = postsQuery.Where(p =>
-                        p.CreatedAt < cursorDate ||
-                        (p.CreatedAt == cursorDate && string.Compare(p.Id, cursorId) < 0));
-            }
-        }
+            postsQuery = ApplyCursorPaging(query.Cursor, postsQuery);
 
 
         var posts = await postsQuery
             .Take(query.PageSize)
             .ToListAsync(ct);
 
-        // Authors sampling
+        var result = await ConvertToPagedResult(posts, query, ct);
+
+        result.NextCursor = posts.Count == query.PageSize && query.Filter.Type != PostFilterType.Top
+            ? $"{posts.Last().CreatedAt:o}|{posts.Last().Id}"
+            : null;
+
+        return Result<PagedResult<PostResponseDto>>.Success(result);
+    }
+
+    public async Task<Result<PagedResult<PostResponseDto>>> GetRecentPostsAsync(GetPostsQuery query, CancellationToken ct)
+    {
+        var postsQuery = dbContext.Posts
+            .Include(p => p.PostPhotos)
+            .Include(p => p.PostReactions)
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenByDescending(p => p.Id).AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Cursor))
+            postsQuery = ApplyCursorPaging(query.Cursor, postsQuery);
+
+        var posts = await postsQuery
+            .Take(query.PageSize)
+            .ToListAsync(ct);
+
+        var result = await ConvertToPagedResult(posts, query, ct);
+        result.NextCursor = posts.Count == query.PageSize && query.Filter.Type != PostFilterType.Top
+            ? $"{posts.Last().CreatedAt:o}|{posts.Last().Id}"
+            : null;
+
+        return Result<PagedResult<PostResponseDto>>.Success(result);
+    }
+
+    private async Task<PagedResult<PostResponseDto>> ConvertToPagedResult(List<Post> posts, GetPostsQuery query, CancellationToken ct)
+    {
         var authorIds = posts.Select(p => p.AuthorId).Distinct().ToList();
         var authors = await dbContext.Users
             .Where(u => authorIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, ct);
 
-
-        // Liked posts only if authorized
         List<string> likedPostIds = [];
         if (currentUser?.Id is not null)
         {
@@ -130,15 +189,14 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             return dto;
         }).ToList();
 
-        return Result<PagedResult<PostResponseDto>>.Success(new PagedResult<PostResponseDto>
+        return new PagedResult<PostResponseDto>
         {
             Items = convertedPosts,
-            NextCursor = posts.Count == query.PageSize
-                ? $"{posts.Last().CreatedAt:o}|{posts.Last().Id}"
-                : null
-        });
-
+        };
     }
+
+
+
 
     public async Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked)
     {
@@ -153,6 +211,24 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
 
+    }
+
+    private static IQueryable<Post> ApplyCursorPaging(string cursor, IQueryable<Post> postsQuery)
+    {
+        var cursorParts = cursor.Split('|');
+        if (cursorParts.Length == 2 &&
+            DateTime.TryParse(cursorParts[0], null,
+            System.Globalization.DateTimeStyles.RoundtripKind,
+            out var cursorDate))
+        {
+            var cursorId = cursorParts[1];
+
+            postsQuery = postsQuery.Where(p =>
+                p.CreatedAt < cursorDate ||
+                (p.CreatedAt == cursorDate && string.Compare(p.Id, cursorId) < 0));
+        }
+
+        return postsQuery;
     }
 
 }

@@ -4,6 +4,7 @@ using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetPosts;
 using Application.Users.Commands.ToggleFollow;
+using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Ocsp;
@@ -66,17 +67,29 @@ public class Posts : EndpointGroupBase
 
     private async Task<IResult> GetPosts(
         ISender sender,
-        [FromQuery] bool ascending = false,
+        [FromQuery] string filter = "recent",
+        [FromQuery] double? lat = null,
+        [FromQuery] double? lng = null,
+        [FromQuery] double? radius = null,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 10)
     {
-        var result = await sender.Send(new GetPostsQuery
+        if (!Enum.TryParse<PostFilterType>(filter, true, out var filterType))
+            filterType = PostFilterType.Recent;
+
+        var query = new GetPostsQuery
         {
-            Ascending = ascending,
+            Filter = new PostFilter
+            {
+                Type = filterType,
+                Latitude = lat,
+                Longitude = lng,
+                RadiusKm = radius
+            },
             Cursor = cursor,
             PageSize = pageSize
-        });
-
+        };
+        var result = await sender.Send(query);
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 

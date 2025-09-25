@@ -24,6 +24,7 @@ builder.Services.Configure<ClientOptions>(
     builder.Configuration.GetSection(ClientOptions.SectionName));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICookieService, CookieService>();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
