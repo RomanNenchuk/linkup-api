@@ -323,4 +323,25 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         return Result.Success();
     }
+
+    public async Task<Result> DeletePostAsync(string postId)
+    {
+        var post = await dbContext.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+        if (post == null) return Result.Failure("Post not found");
+        if (post.AuthorId != currentUser.Id) return Result.Failure("Access denied");
+
+        if (post.PostPhotos.Count > 0)
+        {
+            foreach (var photo in post.PostPhotos)
+            {
+                await cloudinaryService.DeleteImageAsync(photo.PublicId);
+            }
+        }
+
+        dbContext.Remove(post);
+        var result = await dbContext.SaveChangesAsync() > 0;
+
+        return result ? Result.Success() : Result.Failure("Failed to delete post");
+
+    }
 }

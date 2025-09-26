@@ -9,6 +9,7 @@ public interface IPostService
 {
     Task<Result<string>> CreatePostAsync(CreatePostDto dto);
     Task<Result> EditPostAsync(EditPostDto dto);
+    Task<Result> DeletePostAsync(string postId);
     Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked);
     Task<Result<PagedResult<PostResponseDto>>> GetTopPostsAsync(GetPostsQuery query, CancellationToken ct);
     Task<Result<PagedResult<PostResponseDto>>> GetFollowingPostsAsync(GetPostsQuery query, CancellationToken ct);

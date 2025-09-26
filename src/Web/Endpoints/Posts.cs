@@ -1,6 +1,7 @@
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
+using Application.Posts.Commands.DeletePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetPost;
@@ -18,13 +19,14 @@ public class Posts : EndpointGroupBase
     public override void Map(WebApplication app)
     {
         app.MapGroup(this)
-            .MapGet(GetPosts, "");
+            .MapGet(GetPosts, "")
+            .MapDelete(DeletePost, "{postId}")
+           .MapGet(GetPost, "{postId}");
 
         app.MapGroup(this)
            .RequireAuthorization()
            .MapPost(CreatePost, "")
            .MapPatch(EditPost, "{postId}")
-           .MapGet(GetPost, "{postId}")
            .MapPost(ToggleReaction, "{postId}/toggle-reaction");
     }
 
@@ -161,6 +163,12 @@ public class Posts : EndpointGroupBase
             IsLiked = request.IsLiked
         });
 
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> DeletePost(string postId, ISender sender)
+    {
+        var result = await sender.Send(new DeletePostCommand { PostId = postId });
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 }
