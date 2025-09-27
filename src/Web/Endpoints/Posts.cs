@@ -6,6 +6,7 @@ using Application.Posts.Commands.EditPost;
 using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetPost;
 using Application.Posts.Queries.GetPosts;
+using Domain.Constants;
 using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -38,8 +39,8 @@ public class Posts : EndpointGroupBase
     {
         var uploadedAssets = new List<CloudinaryUploadDto>();
 
-        if (request.PostPhotos != null && request.PostPhotos.Count > 5)
-            return Results.BadRequest("You can't upload more that 5 photos.");
+        if (request.PostPhotos != null && request.PostPhotos.Count > PostConstants.MaxPhotosPerPost)
+            return Results.BadRequest($"You can't upload more that {PostConstants.MaxPhotosPerPost} photos.");
 
         if (request.PostPhotos != null && request.PostPhotos.Count != 0)
         {
@@ -86,7 +87,7 @@ public class Posts : EndpointGroupBase
         {
             await postService.ValidatePhotoLimitAsync(postId, request.PhotosToAdd.Count,
                 request.PostPhotosToDelete, CancellationToken.None);
-            return Results.BadRequest("You can't upload more that 5 photos.");
+            return Results.BadRequest($"You can't upload more that {PostConstants.MaxPhotosPerPost} photos.");
         }
 
         if (request.PhotosToAdd != null && request.PhotosToAdd.Count != 0)

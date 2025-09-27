@@ -5,6 +5,7 @@ using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetPosts;
 using AutoMapper;
+using Domain.Constants;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity;
@@ -319,8 +320,8 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         var resultingPhotoNumber = post.PostPhotos.Count + photosToAddCount - uniquePhotosToDelete?.Count ?? 0;
 
-        if (resultingPhotoNumber > 5)
-            return Result.Failure("You can't upload more that 5 photos.");
+        if (resultingPhotoNumber > PostConstants.MaxPhotosPerPost)
+            return Result.Failure($"You can't upload more that {PostConstants.MaxPhotosPerPost} photos.");
 
         return Result.Success();
     }
