@@ -1,3 +1,4 @@
+using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Domain.Entities;
 using Infrastructure.Identity;
@@ -15,6 +16,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PostReaction> PostReactions { get; set; } = null!;
     public DbSet<UserFollow> UserFollows { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
+    public DbSet<HeatmapPoint> HeatmapPoints { get; set; } = null!;
+
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -78,5 +81,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasIndex(vt => vt.Token)
                 .IsUnique();
         });
+
+        builder.Entity<HeatmapPoint>().HasNoKey();
     }
 }

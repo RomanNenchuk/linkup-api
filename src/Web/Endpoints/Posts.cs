@@ -4,6 +4,7 @@ using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.DeletePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Commands.ToggleReaction;
+using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPost;
 using Application.Posts.Queries.GetPosts;
 using Domain.Constants;
@@ -21,6 +22,7 @@ public class Posts : EndpointGroupBase
     {
         app.MapGroup(this)
            .MapGet(GetPosts, "")
+           .MapGet(GetHeatmapPoints, "heatmap-points")
            .MapDelete(DeletePost, "{postId}")
            .MapGet(GetPost, "{postId}");
 
@@ -129,7 +131,7 @@ public class Posts : EndpointGroupBase
         [FromQuery] string filter = "recent",
         [FromQuery] double? latitude = null,
         [FromQuery] double? longitude = null,
-        [FromQuery] double radius = 1,
+        [FromQuery] double radius = 10,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 10)
     {
@@ -172,5 +174,22 @@ public class Posts : EndpointGroupBase
     {
         var result = await sender.Send(new DeletePostCommand { PostId = postId });
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+
+    private async Task<IResult> GetHeatmapPoints(
+        ISender sender, [FromQuery] double minLat, [FromQuery] double minLon,
+        [FromQuery] double maxLat, [FromQuery] double maxLon, [FromQuery] int zoom = 6)
+    {
+        var result = await sender.Send(new GetHeatmapPointsQuery
+        {
+            MinLat = minLat,
+            MaxLat = maxLat,
+            MinLon = minLon,
+            MaxLon = maxLon,
+            Zoom = zoom
+        });
+
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 }

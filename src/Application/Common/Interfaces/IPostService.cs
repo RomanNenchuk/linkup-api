@@ -1,6 +1,7 @@
 using Application.Common.DTOs;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.EditPost;
+using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPosts;
 
 namespace Application.Common.Interfaces;
@@ -12,6 +13,8 @@ public interface IPostService
     Task<Result> DeletePostAsync(string postId);
     Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked);
     Task<Result<PagedResult<PostResponseDto>>> GetTopPostsAsync(GetPostsQuery query, CancellationToken ct);
+    Task<Result<List<HeatmapPointDto>>> GetHeatmapPointsAsync(
+     double minLon, double maxLon, double minLat, double maxLat, int zoom, CancellationToken ct);
     Task<Result<PagedResult<PostResponseDto>>> GetFollowingPostsAsync(GetPostsQuery query, CancellationToken ct);
     Task<Result<PagedResult<PostResponseDto>>> GetRecentPostsAsync(GetPostsQuery query, CancellationToken ct);
     Task<Result<PostResponseDto>> GetPostByIdAsync(string postId, CancellationToken ct);

@@ -1,8 +1,10 @@
+using System.Globalization;
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.EditPost;
+using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPosts;
 using AutoMapper;
 using Domain.Constants;
@@ -370,4 +372,54 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         return result ? Result.Success() : Result.Failure("Failed to delete post");
 
     }
+
+    public async Task<Result<List<HeatmapPointDto>>> GetHeatmapPointsAsync(
+     double minLon, double maxLon, double minLat, double maxLat, int zoom, CancellationToken ct)
+    {
+        double cellSize = zoom switch
+        {
+            <= 5 => 0.5,
+            <= 8 => 0.2,
+            <= 12 => 0.05,
+            _ => 0.01
+        };
+
+        var sql = $@"
+            SELECT 
+                ST_SnapToGrid(""Location""::geometry, {cellSize}, {cellSize}) AS ""Geom"",
+                COUNT(*) AS ""PointCount""
+            FROM ""Posts""
+            WHERE ST_Within(
+                ""Location""::geometry,
+                ST_MakeEnvelope(
+                    {minLon.ToString(CultureInfo.InvariantCulture)},
+                    {minLat.ToString(CultureInfo.InvariantCulture)},
+                    {maxLon.ToString(CultureInfo.InvariantCulture)},
+                    {maxLat.ToString(CultureInfo.InvariantCulture)},
+                    4326
+                )
+            )
+            GROUP BY ST_SnapToGrid(""Location""::geometry, {cellSize}, {cellSize})
+        ";
+
+
+        var debug = await dbContext.HeatmapPoints
+            .FromSqlRaw(sql)
+            .ToListAsync(ct);
+
+        Console.WriteLine(debug);
+
+        var points = await dbContext.HeatmapPoints
+            .FromSqlRaw(sql)
+            .Select(p => new HeatmapPointDto
+            {
+                Latitude = p.Geom.Y,
+                Longitude = p.Geom.X,
+                Count = p.PointCount
+            })
+            .ToListAsync(ct);
+
+        return Result<List<HeatmapPointDto>>.Success(points);
+    }
+
 }
