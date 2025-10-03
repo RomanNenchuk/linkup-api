@@ -1,7 +1,7 @@
 # ----------------------
 # 1. Build stage
 # ----------------------
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # копіюємо sln і всі проекти
@@ -17,7 +17,7 @@ RUN dotnet publish ./src/Web/Web.csproj -c Release -o /app/publish
 # ----------------------
 # 2. Runtime stage
 # ----------------------
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 # копіюємо результати збірки
