@@ -374,7 +374,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
     }
 
     public async Task<Result<List<HeatmapPointDto>>> GetHeatmapPointsAsync(
-     double minLon, double maxLon, double minLat, double maxLat, int zoom, CancellationToken ct)
+        double minLon, double maxLon, double minLat, double maxLat, int zoom, CancellationToken ct)
     {
         double cellSize = zoom switch
         {
@@ -386,55 +386,43 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         string sql;
 
-        if (zoom >= 5)
+        if (zoom >= 6)
         {
-            sql = $@"
-                SELECT 
-                    ST_Centroid(ST_Collect(""Location""::geometry)) AS ""Geom"",
-                    COUNT(*) AS ""PointCount""
-                FROM ""Posts""
-                WHERE ST_Within(
-                    ""Location""::geometry,
-                    ST_MakeEnvelope(
-                        {minLon.ToString(CultureInfo.InvariantCulture)},
-                        {minLat.ToString(CultureInfo.InvariantCulture)},
-                        {maxLon.ToString(CultureInfo.InvariantCulture)},
-                        {maxLat.ToString(CultureInfo.InvariantCulture)},
-                        4326
-                    )
-                )
-                GROUP BY ST_SnapToGrid(""Location""::geometry, {cellSize}, {cellSize})
-            ";
+            sql = @"
+            SELECT 
+                ST_MakePoint(
+                    AVG(ST_X(""Location""::geometry)),
+                    AVG(ST_Y(""Location""::geometry))
+                ) AS ""Geom"",
+                COUNT(*) AS ""PointCount""
+            FROM ""Posts""
+            WHERE ""Location""::geometry && ST_MakeEnvelope(@minLon, @minLat, @maxLon, @maxLat, 4326)
+            GROUP BY ST_SnapToGrid(""Location""::geometry, @cellSize, @cellSize)
+             ";
         }
         else
         {
-            sql = $@"
-                SELECT 
-                    ST_SnapToGrid(""Location""::geometry, {cellSize}, {cellSize}) AS ""Geom"",
-                    COUNT(*) AS ""PointCount""
-                FROM ""Posts""
-                WHERE ST_Within(
-                    ""Location""::geometry,
-                    ST_MakeEnvelope(
-                        {minLon.ToString(CultureInfo.InvariantCulture)},
-                        {minLat.ToString(CultureInfo.InvariantCulture)},
-                        {maxLon.ToString(CultureInfo.InvariantCulture)},
-                        {maxLat.ToString(CultureInfo.InvariantCulture)},
-                        4326
-                    )
-                )
-                GROUP BY ST_SnapToGrid(""Location""::geometry, {cellSize}, {cellSize})
+            sql = @"
+            SELECT 
+                ST_SnapToGrid(""Location""::geometry, @cellSize, @cellSize) AS ""Geom"",
+                COUNT(*) AS ""PointCount""
+            FROM ""Posts""
+            WHERE ""Location""::geometry && ST_MakeEnvelope(@minLon, @minLat, @maxLon, @maxLat, 4326)
+            GROUP BY ST_SnapToGrid(""Location""::geometry, @cellSize, @cellSize)
             ";
         }
 
-        var debug = await dbContext.HeatmapPoints
-            .FromSqlRaw(sql)
-            .ToListAsync(ct);
-
-        Console.WriteLine(debug);
+        var parameters = new[]
+        {
+            new Npgsql.NpgsqlParameter("@minLon", minLon),
+            new Npgsql.NpgsqlParameter("@minLat", minLat),
+            new Npgsql.NpgsqlParameter("@maxLon", maxLon),
+            new Npgsql.NpgsqlParameter("@maxLat", maxLat),
+            new Npgsql.NpgsqlParameter("@cellSize", cellSize)
+        };
 
         var points = await dbContext.HeatmapPoints
-            .FromSqlRaw(sql)
+            .FromSqlRaw(sql, parameters)
             .Select(p => new HeatmapPointDto
             {
                 Latitude = p.Geom.Y,
@@ -445,5 +433,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         return Result<List<HeatmapPointDto>>.Success(points);
     }
+
 
 }
