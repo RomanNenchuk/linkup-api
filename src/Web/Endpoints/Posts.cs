@@ -6,6 +6,7 @@ using Application.Posts.Commands.EditPost;
 using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPost;
+using Application.Posts.Queries.GetPostClusters;
 using Application.Posts.Queries.GetPosts;
 using Domain.Constants;
 using Domain.Enums;
@@ -23,6 +24,7 @@ public class Posts : EndpointGroupBase
         app.MapGroup(this)
            .MapGet(GetPosts, "")
            .MapGet(GetHeatmapPoints, "heatmap-points")
+           .MapGet(GetPostClusters, "clusters")
            .MapDelete(DeletePost, "{postId}")
            .MapGet(GetPost, "{postId}");
 
@@ -190,6 +192,12 @@ public class Posts : EndpointGroupBase
             Zoom = zoom
         });
 
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> GetPostClusters(ISender sender)
+    {
+        var result = await sender.Send(new GetPostClustersQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 }

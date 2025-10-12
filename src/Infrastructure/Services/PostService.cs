@@ -1,10 +1,10 @@
-using System.Globalization;
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetHeatmapPoints;
+using Application.Posts.Queries.GetPostClusters;
 using Application.Posts.Queries.GetPosts;
 using AutoMapper;
 using Domain.Constants;
@@ -432,6 +432,37 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .ToListAsync(ct);
 
         return Result<List<HeatmapPointDto>>.Success(points);
+    }
+
+    public async Task<Result<List<ClusterDto>>> GetPostClustersAsync(CancellationToken ct)
+    {
+        var sql = @"
+        SELECT 
+            cluster_id AS ""ClusterId"",
+            ST_Y(ST_Centroid(ST_Collect(""Location""::geometry))) AS ""Latitude"",
+            ST_X(ST_Centroid(ST_Collect(""Location""::geometry))) AS ""Longitude"",
+            COUNT(*) AS ""Count""
+        FROM(
+            SELECT ST_ClusterKMeans(""Location""::geometry, 10) OVER() AS cluster_id, ""Location""
+            FROM ""Posts""
+            WHERE ""Location"" IS NOT NULL
+        ) sub
+        GROUP BY cluster_id
+        ORDER BY ""Count"" DESC
+        ";
+
+        var clusters = await dbContext.Clusters
+            .FromSqlRaw(sql)
+            .Select(c => new ClusterDto
+            {
+                ClusterId = c.ClusterId,
+                Latitude = c.Latitude,
+                Longitude = c.Longitude,
+                Count = c.Count
+            })
+            .ToListAsync(ct);
+
+        return Result<List<ClusterDto>>.Success(clusters);
     }
 
 

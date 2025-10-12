@@ -17,6 +17,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<UserFollow> UserFollows { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
     public DbSet<HeatmapPoint> HeatmapPoints { get; set; } = null!;
+    public DbSet<Cluster> Clusters { get; set; } = null!;
+
 
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -83,5 +85,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
 
         builder.Entity<HeatmapPoint>().HasNoKey();
+        builder.Entity<Cluster>().HasNoKey();
+
     }
 }
