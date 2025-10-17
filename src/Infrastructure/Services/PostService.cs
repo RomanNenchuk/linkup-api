@@ -329,10 +329,26 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
     public async Task<Result<PostResponseDto>> GetPostByIdAsync(string postId, CancellationToken ct)
     {
-        var post = await dbContext.Posts.Include(p => p.PostPhotos).FirstOrDefaultAsync(p => p.Id == postId, ct);
+        var post = await dbContext.Posts.Include(p => p.PostPhotos).Include(p => p.PostReactions).FirstOrDefaultAsync(p => p.Id == postId, ct);
         if (post == null) return Result<PostResponseDto>.Failure("Post not found");
 
-        return Result<PostResponseDto>.Success(mapper.Map<PostResponseDto>(post));
+        var author = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == post.AuthorId, ct);
+        if (author == null) return Result<PostResponseDto>.Failure("Author not found");
+
+        bool isLikedByCurrentUser = false;
+        if (currentUser?.Id is not null)
+            isLikedByCurrentUser = post.PostReactions.Any(p => p.UserId == currentUser.Id);
+
+        var dto = mapper.Map<PostResponseDto>(post);
+        dto.Author = new AuthorDto
+        {
+            Id = author.Id,
+            DisplayName = author.DisplayName ?? "Unknown"
+        };
+
+        dto.IsLikedByCurrentUser = isLikedByCurrentUser;
+
+        return Result<PostResponseDto>.Success(dto);
     }
 
     public async Task<Result> ValidatePhotoLimitAsync(string postId, int photosToAddCount, List<string>? photosToDeleteList, CancellationToken ct)
