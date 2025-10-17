@@ -18,6 +18,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
     public DbSet<HeatmapPoint> HeatmapPoints { get; set; } = null!;
     public DbSet<Cluster> Clusters { get; set; } = null!;
+    public DbSet<PostComment> PostCommnets { get; set; } = null!;
 
 
 
@@ -47,6 +48,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(pr => pr.UserId);
+        });
+
+        builder.Entity<PostComment>(entity =>
+        {
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(pc => pc.AuthorId);
         });
 
         builder.Entity<UserFollow>(entity =>
