@@ -1,6 +1,7 @@
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
+using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.DeletePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Commands.ToggleReaction;
@@ -32,7 +33,8 @@ public class Posts : EndpointGroupBase
            .RequireAuthorization()
            .MapPost(CreatePost, "")
            .MapPatch(EditPost, "{postId}")
-           .MapPost(ToggleReaction, "{postId}/toggle-reaction");
+           .MapPost(ToggleReaction, "{postId}/toggle-reaction")
+           .MapPost(CreatePostComment, "{postId}/comments");
     }
 
     private async Task<IResult> CreatePost(
@@ -170,6 +172,19 @@ public class Posts : EndpointGroupBase
         });
 
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> CreatePostComment(ISender sender, [FromRoute] string postId,
+        [FromBody] CreatePostCommentRequest request)
+    {
+        var command = new CreatePostCommentCommand
+        {
+            PostId = postId,
+            Content = request.Content,
+            RepliedTo = request.RepliedTo
+        };
+        var result = await sender.Send(command);
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
     private async Task<IResult> DeletePost(string postId, ISender sender)

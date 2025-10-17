@@ -1,5 +1,6 @@
 using Application.Common.DTOs;
 using Application.Posts.Commands.CreatePost;
+using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
@@ -22,4 +23,5 @@ public interface IPostService
     Task<Result<PostResponseDto>> GetPostByIdAsync(string postId, CancellationToken ct);
     Task<Result> ValidatePhotoLimitAsync(string postId, int photosToAddCount, List<string>? photosToDeleteList,
         CancellationToken ct);
+    Task<Result<string>> CreatePostCommentAsync(CreatePostCommentDto dto);
 }

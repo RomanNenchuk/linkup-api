@@ -4,6 +4,7 @@ using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Commands.CreatePost;
+using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
@@ -538,5 +539,26 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         memoryCache.Set(cacheKey, clusters, cacheOptions);
 
         return Result<List<ClusterDto>>.Success(clusters);
+    }
+
+    public async Task<Result<string>> CreatePostCommentAsync(CreatePostCommentDto dto)
+    {
+        var user = await userManager.FindByIdAsync(dto.AuthorId);
+        if (user == null) return Result<string>.Failure("User not found");
+
+        var post = await dbContext.Posts.FirstOrDefaultAsync(p => p.Id == dto.PostId);
+        if (post == null) return Result<string>.Failure("Post not found");
+
+        var comment = new PostComment
+        {
+            Content = dto.Content,
+            PostId = dto.PostId,
+            AuthorId = dto.AuthorId,
+            RepliedTo = dto.RepliedTo,
+        };
+
+        dbContext.Add(comment);
+        var result = await dbContext.SaveChangesAsync() > 0;
+        return result ? Result<string>.Success(post.Id) : Result<string>.Failure("Failed to create comment");
     }
 }
