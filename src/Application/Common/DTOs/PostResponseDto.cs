@@ -20,13 +20,6 @@ public class PostResponseDto
     public AuthorDto Author { get; set; } = null!;
 }
 
-public class AuthorDto
-{
-    public string Id { get; set; } = null!;
-    public string DisplayName { get; set; } = null!;
-}
-
-
 public class PostPhotoDto
 {
     public string Id { get; set; } = null!;

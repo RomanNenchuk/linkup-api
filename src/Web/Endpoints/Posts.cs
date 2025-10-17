@@ -8,6 +8,7 @@ using Application.Posts.Commands.ToggleReaction;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPost;
 using Application.Posts.Queries.GetPostClusters;
+using Application.Posts.Queries.GetPostComments;
 using Application.Posts.Queries.GetPosts;
 using Domain.Constants;
 using Domain.Enums;
@@ -27,7 +28,8 @@ public class Posts : EndpointGroupBase
            .MapGet(GetHeatmapPoints, "heatmap-points")
            .MapGet(GetPostClusters, "clusters")
            .MapDelete(DeletePost, "{postId}")
-           .MapGet(GetPost, "{postId}");
+           .MapGet(GetPost, "{postId}")
+           .MapGet(GetPostComments, "{postId}/comments");
 
         app.MapGroup(this)
            .RequireAuthorization()
@@ -213,6 +215,12 @@ public class Posts : EndpointGroupBase
     private async Task<IResult> GetPostClusters(ISender sender)
     {
         var result = await sender.Send(new GetPostClustersQuery());
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> GetPostComments([FromRoute] string postId, ISender sender)
+    {
+        var result = await sender.Send(new GetPostCommentsQuery { PostId = postId });
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 }

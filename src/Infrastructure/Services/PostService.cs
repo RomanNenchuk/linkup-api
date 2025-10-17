@@ -8,6 +8,7 @@ using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
+using Application.Posts.Queries.GetPostComments;
 using Application.Posts.Queries.GetPosts;
 using AutoMapper;
 using Domain.Constants;
@@ -561,4 +562,41 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         var result = await dbContext.SaveChangesAsync() > 0;
         return result ? Result<string>.Success(post.Id) : Result<string>.Failure("Failed to create comment");
     }
+
+    public async Task<Result<List<PostCommentResponseDto>>> GetPostCommentsAsync(string postId)
+    {
+        var post = await dbContext.Posts
+            .Include(p => p.PostComments)
+            .FirstOrDefaultAsync(p => p.Id == postId);
+
+        if (post == null)
+            return Result<List<PostCommentResponseDto>>.Failure("Post not found");
+
+        var authorIds = post.PostComments
+            .Select(pc => pc.AuthorId)
+            .Distinct()
+            .ToList();
+
+        var authors = await userManager.Users
+            .Where(u => authorIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
+        var postComments = mapper.Map<List<PostCommentResponseDto>>(post.PostComments);
+
+        foreach (var commentDto in postComments)
+        {
+            var originalComment = post.PostComments.First(c => c.Id == commentDto.Id);
+            if (authors.TryGetValue(originalComment.AuthorId, out var author))
+            {
+                commentDto.Author = new AuthorDto
+                {
+                    Id = author.Id,
+                    DisplayName = author.DisplayName
+                };
+            }
+        }
+
+        return Result<List<PostCommentResponseDto>>.Success(postComments);
+    }
+
 }

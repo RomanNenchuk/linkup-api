@@ -4,6 +4,7 @@ using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
+using Application.Posts.Queries.GetPostComments;
 using Application.Posts.Queries.GetPosts;
 
 namespace Application.Common.Interfaces;
@@ -24,4 +25,5 @@ public interface IPostService
     Task<Result> ValidatePhotoLimitAsync(string postId, int photosToAddCount, List<string>? photosToDeleteList,
         CancellationToken ct);
     Task<Result<string>> CreatePostCommentAsync(CreatePostCommentDto dto);
+    Task<Result<List<PostCommentResponseDto>>> GetPostCommentsAsync(string postId);
 }
