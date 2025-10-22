@@ -368,23 +368,29 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
     public async Task<Result<PostResponseDto>> GetPostByIdAsync(string postId, CancellationToken ct)
     {
-        var post = await dbContext.Posts.Include(p => p.PostPhotos).Include(p => p.PostReactions).FirstOrDefaultAsync(p => p.Id == postId, ct);
+        var post = await dbContext.Posts.Include(p => p.PostPhotos).FirstOrDefaultAsync(p => p.Id == postId, ct);
         if (post == null) return Result<PostResponseDto>.Failure("Post not found");
 
-        var author = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == post.AuthorId, ct);
+        var author = await dbContext.Users
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync(u => u.Id == post.AuthorId, ct);
         if (author == null) return Result<PostResponseDto>.Failure("Author not found");
 
-        bool isLikedByCurrentUser = false;
-        if (currentUser?.Id is not null)
-            isLikedByCurrentUser = post.PostReactions.Any(p => p.UserId == currentUser.Id);
+        var reactionCount = await dbContext.PostReactions.CountAsync(r => r.PostId == post.Id, ct);
+        var commentCount = await dbContext.PostComments.CountAsync(c => c.PostId == post.Id, ct);
+
+        var isLikedByCurrentUser = currentUser?.Id is not null &&
+            await dbContext.PostReactions.AnyAsync(r => r.PostId == post.Id && r.UserId == currentUser.Id, ct);
 
         var dto = mapper.Map<PostResponseDto>(post);
         dto.Author = new AuthorDto
         {
             Id = author.Id,
-            DisplayName = author.DisplayName ?? "Unknown"
+            DisplayName = author.DisplayName
         };
 
+        dto.ReactionCount = reactionCount;
+        dto.CommentCount = commentCount;
         dto.IsLikedByCurrentUser = isLikedByCurrentUser;
 
         return Result<PostResponseDto>.Success(dto);
