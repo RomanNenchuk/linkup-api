@@ -2,5 +2,5 @@ namespace Domain.Constants;
 
 public static class PostConstants
 {
-    public const int MaxPhotosPerPost = 5;
+    public const int MaxPhotosPerPost = 10;
 }

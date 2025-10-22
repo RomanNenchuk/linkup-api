@@ -3,7 +3,6 @@ using System.Text.Json;
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
-using Application.Common.Models;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
@@ -249,7 +248,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .Select(r => r.PostId)
             .ToListAsync(ct);
     }
-
 
     public async Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked)
     {
@@ -655,17 +653,16 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
     public async Task<Result> TogglePostCommentReactionAsync(string commentId, string userId, bool isLiked)
     {
-        // var comment = await dbContext.PostComments.FirstOrDefaultAsync(x => x.Id == commentId);
-        // if (comment == null) return Result.Failure("Comment does not exist");
+        var comment = await dbContext.PostComments.FirstOrDefaultAsync(x => x.Id == commentId);
+        if (comment == null) return Result.Failure("Comment does not exist");
 
-        // var reaction = await dbContext.PostReactions.FirstOrDefaultAsync(x => x.PostId == postId && x.UserId == userId);
-        // if (reaction == null) dbContext.Add(new PostReaction { UserId = userId, PostId = postId });
-        // else dbContext.Remove(reaction);
+        var reaction = await dbContext.PostCommentReactions
+            .FirstOrDefaultAsync(x => x.PostCommentId == commentId && x.UserId == userId);
+        if (reaction == null) dbContext.Add(new PostCommentReaction { UserId = userId, PostCommentId = commentId });
+        else dbContext.Remove(reaction);
 
-        // var result = await dbContext.SaveChangesAsync() > 0;
+        var result = await dbContext.SaveChangesAsync() > 0;
 
-        // return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
-
-        throw new NotImplementedException();
+        return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
     }
 }
