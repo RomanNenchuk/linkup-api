@@ -18,7 +18,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
     public DbSet<HeatmapPoint> HeatmapPoints { get; set; } = null!;
     public DbSet<Cluster> Clusters { get; set; } = null!;
-    public DbSet<PostComment> PostCommnets { get; set; } = null!;
+    public DbSet<PostComment> PostComments { get; set; } = null!;
 
 
 

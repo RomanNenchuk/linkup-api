@@ -3,6 +3,7 @@ using System.Text.Json;
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Common.Models;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.EditPost;
@@ -85,10 +86,11 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         var postsQuery = dbContext.Posts
             .Include(p => p.PostPhotos)
-            .Include(p => p.PostReactions)
             .Where(p => p.CreatedAt >= oneWeekAgo)
-            .OrderByDescending(p => p.PostReactions.Count)
-            .ThenByDescending(p => p.CreatedAt).AsQueryable();
+            .OrderByDescending(p => dbContext.PostReactions.Count(r => r.PostId == p.Id))
+            .ThenByDescending(p => dbContext.PostComments.Count(c => c.PostId == p.Id))
+            .ThenByDescending(p => p.CreatedAt)
+            .AsQueryable();
 
         if (query.Filter.Latitude.HasValue && query.Filter.Longitude.HasValue && query.Filter.RadiusKm.HasValue)
             postsQuery = ApplyLocationFilter(query.Filter.Latitude.Value, query.Filter.Longitude.Value,
@@ -99,7 +101,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .Take(query.PageSize)
             .ToListAsync(ct);
 
-        var result = await ConvertToPagedResult(posts, query, ct);
+        var result = await BuildPagedPostResultAsync(posts, query, ct);
 
         result.NextCursor = posts.Count == query.PageSize
             ? (offset + query.PageSize).ToString()
@@ -113,6 +115,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         return Result<PagedResult<PostResponseDto>>.Success(result);
     }
 
+
     public async Task<Result<PagedResult<PostResponseDto>>> GetFollowingPostsAsync(GetPostsQuery query, CancellationToken ct)
     {
         if (currentUser?.Id is null)
@@ -124,7 +127,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         var postsQuery = dbContext.Posts
             .Include(p => p.PostPhotos)
-            .Include(p => p.PostReactions)
             .Where(p => followeeIds.Contains(p.AuthorId))
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id).AsQueryable(); ;
@@ -140,7 +142,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .Take(query.PageSize)
             .ToListAsync(ct);
 
-        var result = await ConvertToPagedResult(posts, query, ct);
+        var result = await BuildPagedPostResultAsync(posts, query, ct);
 
         result.NextCursor = posts.Count == query.PageSize && query.Filter.Type != PostFilterType.Top
             ? $"{posts.Last().CreatedAt:o}|{posts.Last().Id}"
@@ -153,7 +155,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
     {
         var postsQuery = dbContext.Posts
             .Include(p => p.PostPhotos)
-            .Include(p => p.PostReactions)
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id).AsQueryable();
 
@@ -169,7 +170,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .Take(query.PageSize)
             .ToListAsync(ct);
 
-        var result = await ConvertToPagedResult(posts, query, ct);
+        var result = await BuildPagedPostResultAsync(posts, query, ct);
         result.NextCursor = posts.Count == query.PageSize && query.Filter.Type != PostFilterType.Top
             ? $"{posts.Last().CreatedAt:o}|{posts.Last().Id}"
             : null;
@@ -177,34 +178,33 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         return Result<PagedResult<PostResponseDto>>.Success(result);
     }
 
-    private async Task<PagedResult<PostResponseDto>> ConvertToPagedResult(List<Post> posts, GetPostsQuery query, CancellationToken ct)
+    private async Task<PagedResult<PostResponseDto>> BuildPagedPostResultAsync(List<Post> posts, GetPostsQuery query, CancellationToken ct)
     {
+        var postIds = posts.Select(p => p.Id).ToList();
         var authorIds = posts.Select(p => p.AuthorId).Distinct().ToList();
-        var authors = await dbContext.Users
-            .Where(u => authorIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, ct);
 
-        List<string> likedPostIds = [];
-        if (currentUser?.Id is not null)
-        {
-            likedPostIds = await dbContext.PostReactions
-                .Where(r => r.UserId == currentUser.Id && posts.Select(p => p.Id).Contains(r.PostId))
-                .Select(r => r.PostId)
-                .ToListAsync(ct);
-        }
+        var authors = await GetAuthorsAsync(authorIds, ct);
+        var reactionCounts = await GetReactionCountsAsync(postIds, ct);
+        var commentCounts = await GetCommentCountsAsync(postIds, ct);
+        var likedPostIds = await GetLikedPostIdsAsync(postIds, ct);
 
         var convertedPosts = posts.Select(p =>
         {
             var dto = mapper.Map<PostResponseDto>(p);
+
             if (authors.TryGetValue(p.AuthorId, out var author))
             {
                 dto.Author = new AuthorDto
                 {
                     Id = author.Id,
-                    DisplayName = author.DisplayName ?? "Unknown"
+                    DisplayName = author.DisplayName
                 };
             }
+
             dto.IsLikedByCurrentUser = likedPostIds.Contains(p.Id);
+            dto.ReactionCount = reactionCounts.GetValueOrDefault(p.Id, 0);
+            dto.CommentCount = commentCounts.GetValueOrDefault(p.Id, 0);
+
             return dto;
         }).ToList();
 
@@ -213,6 +213,43 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             Items = convertedPosts,
         };
     }
+
+    private async Task<Dictionary<string, ApplicationUser>> GetAuthorsAsync(List<string> authorIds, CancellationToken ct)
+    {
+        return await dbContext.Users
+            .Where(u => authorIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, ct);
+    }
+
+    private async Task<Dictionary<string, int>> GetReactionCountsAsync(List<string> postIds, CancellationToken ct)
+    {
+        return await dbContext.PostReactions
+            .Where(r => postIds.Contains(r.PostId))
+            .GroupBy(r => r.PostId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    private async Task<Dictionary<string, int>> GetCommentCountsAsync(List<string> postIds, CancellationToken ct)
+    {
+        return await dbContext.PostComments
+            .Where(c => postIds.Contains(c.PostId))
+            .GroupBy(c => c.PostId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    private async Task<List<string>> GetLikedPostIdsAsync(List<string> postIds, CancellationToken ct)
+    {
+        if (currentUser?.Id is null)
+            return [];
+
+        return await dbContext.PostReactions
+            .Where(r => r.UserId == currentUser.Id && postIds.Contains(r.PostId))
+            .Select(r => r.PostId)
+            .ToListAsync(ct);
+    }
+
 
     public async Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked)
     {
@@ -601,7 +638,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
     public async Task<Result> DeletePostCommentAsync(string commentId)
     {
-        var comment = await dbContext.PostCommnets.FirstOrDefaultAsync(pc => pc.Id == commentId);
+        var comment = await dbContext.PostComments.FirstOrDefaultAsync(pc => pc.Id == commentId);
         if (comment == null) return Result.Failure("Comment not found");
         if (comment.AuthorId != currentUser.Id!) return Result.Failure("Access denied");
 
