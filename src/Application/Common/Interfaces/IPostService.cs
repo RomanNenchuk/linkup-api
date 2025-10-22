@@ -16,6 +16,7 @@ public interface IPostService
     Task<Result> DeletePostAsync(string postId);
     Task<Result> DeletePostCommentAsync(string commentId);
     Task<Result> TogglePostReactionAsync(string postId, string userId, bool isLiked);
+    Task<Result> TogglePostCommentReactionAsync(string commentId, string userId, bool isLiked);
     Task<Result<PagedResult<PostResponseDto>>> GetTopPostsAsync(GetPostsQuery query, CancellationToken ct);
     Task<Result<List<HeatmapPointDto>>> GetHeatmapPointsAsync(
      double minLon, double maxLon, double minLat, double maxLat, int zoom, CancellationToken ct);

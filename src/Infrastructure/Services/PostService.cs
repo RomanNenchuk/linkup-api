@@ -271,7 +271,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         var cursorParts = cursor.Split('|');
         if (cursorParts.Length == 2 &&
             DateTime.TryParse(cursorParts[0], null,
-            System.Globalization.DateTimeStyles.RoundtripKind,
+            DateTimeStyles.RoundtripKind,
             out var cursorDate))
         {
             var cursorId = cursorParts[1];
@@ -651,5 +651,21 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         dbContext.Remove(comment);
         var result = await dbContext.SaveChangesAsync() > 0;
         return result ? Result.Success() : Result.Failure("Failed to delete the comment");
+    }
+
+    public async Task<Result> TogglePostCommentReactionAsync(string commentId, string userId, bool isLiked)
+    {
+        // var comment = await dbContext.PostComments.FirstOrDefaultAsync(x => x.Id == commentId);
+        // if (comment == null) return Result.Failure("Comment does not exist");
+
+        // var reaction = await dbContext.PostReactions.FirstOrDefaultAsync(x => x.PostId == postId && x.UserId == userId);
+        // if (reaction == null) dbContext.Add(new PostReaction { UserId = userId, PostId = postId });
+        // else dbContext.Remove(reaction);
+
+        // var result = await dbContext.SaveChangesAsync() > 0;
+
+        // return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
+
+        throw new NotImplementedException();
     }
 }

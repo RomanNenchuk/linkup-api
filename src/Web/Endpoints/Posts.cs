@@ -4,7 +4,8 @@ using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.CreatePostComment;
 using Application.Posts.Commands.DeletePost;
 using Application.Posts.Commands.EditPost;
-using Application.Posts.Commands.ToggleReaction;
+using Application.Posts.Commands.TogglePostCommentReaction;
+using Application.Posts.Commands.TogglePostReaction;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPost;
 using Application.Posts.Queries.GetPostClusters;
@@ -36,7 +37,8 @@ public class Posts : EndpointGroupBase
            .RequireAuthorization()
            .MapPost(CreatePost, "")
            .MapPatch(EditPost, "{postId}")
-           .MapPost(ToggleReaction, "{postId}/toggle-reaction")
+           .MapPost(TogglePostReaction, "{postId}/toggle-reaction")
+           .MapPost(TogglePostCommentReaction, "{postId}/comments/{commentId}/toggle-reaction")
            .MapPost(CreatePostComment, "{postId}/comments");
     }
 
@@ -166,9 +168,22 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
     }
 
-    private async Task<IResult> ToggleReaction(ISender sender, [FromRoute] string postId, [FromBody] ToggleLikeRequest request)
+    private async Task<IResult> TogglePostReaction(ISender sender, [FromRoute] string postId,
+        [FromBody] TogglePostLikeRequest request)
     {
-        var result = await sender.Send(new ToggleReactionCommand
+        var result = await sender.Send(new TogglePostReactionCommand
+        {
+            PostId = postId,
+            IsLiked = request.IsLiked
+        });
+
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> TogglePostCommentReaction(ISender sender, [FromRoute] string postId,
+        [FromRoute] string commentId, [FromBody] TogglePostCommentLikeRequest request)
+    {
+        var result = await sender.Send(new TogglePostReactionCommand
         {
             PostId = postId,
             IsLiked = request.IsLiked

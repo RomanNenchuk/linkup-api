@@ -14,6 +14,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PostPhoto> PostPhotos { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<PostReaction> PostReactions { get; set; } = null!;
+    public DbSet<PostCommentReaction> PostCommentReactions { get; set; } = null!;
     public DbSet<UserFollow> UserFollows { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
     public DbSet<HeatmapPoint> HeatmapPoints { get; set; } = null!;
@@ -48,6 +49,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(pr => pr.UserId);
+        });
+
+        builder.Entity<PostCommentReaction>(entity =>
+        {
+            entity.HasKey(r => new { r.PostCommentId, r.UserId });
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(r => r.UserId);
         });
 
         builder.Entity<PostComment>(entity =>
