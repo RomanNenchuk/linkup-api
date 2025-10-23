@@ -183,9 +183,9 @@ public class Posts : EndpointGroupBase
     private async Task<IResult> TogglePostCommentReaction(ISender sender, [FromRoute] string postId,
         [FromRoute] string commentId, [FromBody] TogglePostCommentLikeRequest request)
     {
-        var result = await sender.Send(new TogglePostReactionCommand
+        var result = await sender.Send(new TogglePostCommentReactionCommand
         {
-            PostId = postId,
+            CommentId = commentId,
             IsLiked = request.IsLiked
         });
 

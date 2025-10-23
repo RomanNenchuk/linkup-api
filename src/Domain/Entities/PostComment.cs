@@ -8,6 +8,7 @@ public class PostComment
     public string AuthorId { get; set; } = null!;
     public Post Post { get; set; } = null!;
     public string? RepliedTo { get; set; }
+    public List<PostCommentReaction> PostCommentReactions { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 }

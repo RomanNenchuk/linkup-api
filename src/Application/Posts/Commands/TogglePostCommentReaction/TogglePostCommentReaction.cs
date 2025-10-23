@@ -6,7 +6,7 @@ namespace Application.Posts.Commands.TogglePostCommentReaction;
 
 public class TogglePostCommentReactionCommand : IRequest<Result>
 {
-    public string PostId { get; set; } = null!;
+    public string CommentId { get; set; } = null!;
     public bool IsLiked { get; set; }
 }
 
@@ -21,6 +21,6 @@ public class TogglePostCommentReactionCommandHandler(IPostService postService, I
     public async Task<Result> Handle(TogglePostCommentReactionCommand request, CancellationToken ct)
     {
         var userId = currentUserService.Id!;
-        return await postService.TogglePostReactionAsync(request.PostId, userId, request.IsLiked);
+        return await postService.TogglePostCommentReactionAsync(request.CommentId, userId, request.IsLiked);
     }
 }

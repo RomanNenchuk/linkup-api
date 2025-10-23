@@ -10,6 +10,8 @@ public class PostCommentResponseDto
     public string Content { get; set; } = null!;
     public string PostId { get; set; } = null!;
     public AuthorDto Author { get; set; } = null!;
+    public int ReactionCount { get; set; }
+    public bool IsLikedByCurrentUser { get; set; }
     public string? RepliedTo { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

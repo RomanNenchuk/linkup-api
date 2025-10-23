@@ -255,8 +255,13 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         if (post == null) return Result.Failure("Post does not exist");
 
         var reaction = await dbContext.PostReactions.FirstOrDefaultAsync(x => x.PostId == postId && x.UserId == userId);
-        if (reaction == null) dbContext.Add(new PostReaction { UserId = userId, PostId = postId });
-        else dbContext.Remove(reaction);
+
+        if (reaction == null && isLiked)
+            dbContext.Add(new PostReaction { UserId = userId, PostId = postId });
+        else if (reaction != null && !isLiked)
+            dbContext.Remove(reaction);
+        else
+            return Result.Success(); // already in desired state
 
         var result = await dbContext.SaveChangesAsync() > 0;
 
@@ -608,6 +613,7 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
     {
         var post = await dbContext.Posts
             .Include(p => p.PostComments)
+            .ThenInclude(c => c.PostCommentReactions)
             .FirstOrDefaultAsync(p => p.Id == postId);
 
         if (post == null)
@@ -658,8 +664,12 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
         var reaction = await dbContext.PostCommentReactions
             .FirstOrDefaultAsync(x => x.PostCommentId == commentId && x.UserId == userId);
-        if (reaction == null) dbContext.Add(new PostCommentReaction { UserId = userId, PostCommentId = commentId });
-        else dbContext.Remove(reaction);
+        if (reaction == null && isLiked)
+            dbContext.Add(new PostCommentReaction { UserId = userId, PostCommentId = commentId });
+        else if (reaction != null && !isLiked)
+            dbContext.Remove(reaction);
+        else
+            return Result.Success(); // already in desired state
 
         var result = await dbContext.SaveChangesAsync() > 0;
 
