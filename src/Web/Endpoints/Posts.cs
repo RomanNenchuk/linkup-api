@@ -137,13 +137,13 @@ public class Posts : EndpointGroupBase
 
     private async Task<IResult> GetPosts(
         ISender sender,
+        [FromQuery] double? latitude,
+        [FromQuery] double? longitude,
+        [FromQuery] string? cursor,
+        [FromQuery] string? authorId,
         [FromQuery] string sort = "recent",
-        [FromQuery] double? latitude = null,
-        [FromQuery] double? longitude = null,
         [FromQuery] double radius = 10,
-        [FromQuery] string? cursor = null,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? authorId = null
+        [FromQuery] int pageSize = 10
         )
     {
         if (!Enum.TryParse<PostSortType>(sort, true, out var sortType))
@@ -156,7 +156,8 @@ public class Posts : EndpointGroupBase
                 SortType = sortType,
                 Latitude = latitude,
                 Longitude = longitude,
-                RadiusKm = radius
+                RadiusKm = radius,
+                AuthorId = authorId
             },
             Cursor = cursor,
             PageSize = pageSize

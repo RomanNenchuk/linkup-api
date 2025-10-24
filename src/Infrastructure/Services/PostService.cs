@@ -158,6 +158,9 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id).AsQueryable();
 
+        if (query.Params.AuthorId is not null)
+            postsQuery = postsQuery.Where(p => p.AuthorId == query.Params.AuthorId);
+
         if (!string.IsNullOrEmpty(query.Cursor))
             postsQuery = ApplyCursorPaging(query.Cursor, postsQuery);
 
