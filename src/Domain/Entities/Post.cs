@@ -6,8 +6,7 @@ public class Post
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string AuthorId { get; set; } = null!;
-    public string Title { get; set; } = null!;
-    public string? Content { get; set; }
+    public string Content { get; set; } = null!;
     public Point? Location { get; set; }
     public string? Address { get; set; }
     public List<PostComment> PostComments { get; set; } = [];

@@ -73,7 +73,6 @@ public class Posts : EndpointGroupBase
 
         var command = new CreatePostCommand
         {
-            Title = request.Title,
             Content = request.Content,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
@@ -123,7 +122,6 @@ public class Posts : EndpointGroupBase
         var command = new EditPostCommand
         {
             PostId = postId,
-            Title = request.Title,
             Content = request.Content,
             Latitude = request.Latitude,
             Longitude = request.Longitude,

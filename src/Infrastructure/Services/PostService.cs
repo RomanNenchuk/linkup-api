@@ -42,7 +42,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             var post = new Post
             {
                 AuthorId = dto.AuthorId,
-                Title = dto.Title,
                 Content = dto.Content,
                 Location = (dto.Latitude.HasValue && dto.Longitude.HasValue)
                     ? geometryFactory.CreatePoint(new Coordinate(dto.Longitude.Value, dto.Latitude.Value))
@@ -318,10 +317,6 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
 
             if (userId != existingPost.AuthorId)
                 return Result.Failure("Access denied");
-
-            // --- Text data ---
-            if (!string.IsNullOrWhiteSpace(dto.Title))
-                existingPost.Title = dto.Title;
 
             if (!string.IsNullOrWhiteSpace(dto.Content))
                 existingPost.Content = dto.Content;

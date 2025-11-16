@@ -4,8 +4,7 @@ namespace Web.DTOs;
 
 public class CreatePostRequest
 {
-    public string Title { get; set; } = null!;
-    public string? Content { get; set; }
+    public string Content { get; set; } = null!;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? Address { get; set; }

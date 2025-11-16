@@ -7,8 +7,7 @@ namespace Application.Posts.Commands.CreatePost;
 
 public class CreatePostCommand : IRequest<Result<string>>
 {
-    public string Title { get; set; } = null!;
-    public string? Content { get; set; }
+    public string Content { get; set; } = null!;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? Address { get; set; }
@@ -24,7 +23,6 @@ public class CreatePostCommandHandler(IPostService postService, ICurrentUserServ
         var createPostDto = new CreatePostDto
         {
             AuthorId = userId,
-            Title = request.Title,
             Content = request.Content,
             Latitude = request.Latitude,
             Longitude = request.Longitude,

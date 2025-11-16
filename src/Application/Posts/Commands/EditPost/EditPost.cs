@@ -8,7 +8,6 @@ namespace Application.Posts.Commands.EditPost;
 public class EditPostCommand : IRequest<Result>
 {
     public string PostId { get; set; } = null!;
-    public string? Title { get; set; } = null!;
     public string? Content { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
@@ -25,7 +24,6 @@ public class EditPostCommandHandler(IPostService postService)
         var editPostDto = new EditPostDto
         {
             PostId = request.PostId,
-            Title = request.Title,
             Content = request.Content,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
