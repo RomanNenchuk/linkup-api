@@ -22,19 +22,39 @@ public class LocationIqService : ILocationIqService
 
     public async Task<Result<LocationIqResponse?>> ReverseGeocode(double lat, double lon)
     {
-        var builder = new UriBuilder("https://us1.locationiq.com/v1/reverse");
-        var query = $"key={_apiKey}&lat={lat.ToString(CultureInfo.InvariantCulture)}&lon={lon.ToString(CultureInfo.InvariantCulture)}&format=json";
-        builder.Query = query;
-        var url = builder.ToString();
+        try
+        {
+            var builder = new UriBuilder("https://us1.locationiq.com/v1/reverse");
+            var query =
+                $"key={_apiKey}&lat={lat.ToString(CultureInfo.InvariantCulture)}&lon={lon.ToString(CultureInfo.InvariantCulture)}&format=json";
+            builder.Query = query;
 
+            var response = await _httpClient.GetAsync(builder.Uri);
 
-        var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return Result<LocationIqResponse?>.Failure($"API returned {response.StatusCode}");
 
-        if (!response.IsSuccessStatusCode)
-            return Result<LocationIqResponse?>.Failure("Failed to reverse geocode");
+            var json = await response.Content.ReadAsStringAsync();
 
-        var json = await response.Content.ReadAsStringAsync();
-        return Result<LocationIqResponse?>.Success(JsonConvert.DeserializeObject<LocationIqResponse>(json));
+            var result = JsonConvert.DeserializeObject<LocationIqResponse>(json);
+
+            if (result == null)
+                return Result<LocationIqResponse?>.Failure("Failed to parse response");
+
+            return Result<LocationIqResponse?>.Success(result);
+        }
+        catch (HttpRequestException)
+        {
+            return Result<LocationIqResponse?>.Failure("Network error while calling LocationIQ");
+        }
+        catch (JsonException)
+        {
+            return Result<LocationIqResponse?>.Failure("Invalid JSON response from LocationIQ");
+        }
+        catch (Exception ex)
+        {
+            return Result<LocationIqResponse?>.Failure($"Unexpected error: {ex.Message}");
+        }
     }
 
     public async Task<Result<string>> ReverseGeocodePlace(double lat, double lon)

@@ -26,7 +26,8 @@ using NetTopologySuite.Geometries;
 namespace Infrastructure.Services;
 
 public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserManager<ApplicationUser> userManager,
-    ICurrentUserService currentUser, ICloudinaryService cloudinaryService, IMemoryCache memoryCache) : IPostService
+    ICurrentUserService currentUser, ICloudinaryService cloudinaryService, IMemoryCache memoryCache,
+    ILocationIqService locationService) : IPostService
 {
     public async Task<Result<string>> CreatePostAsync(CreatePostDto dto)
     {
@@ -540,55 +541,17 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
             .ToListAsync(ct);
 
         // --- Reverse geocoding ---
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Add("User-Agent", "LinkUpApp/1.0 (rmntemporary1@gmail.com)");
-
         foreach (var cluster in clusters)
         {
-            try
-            {
-                var url = string.Format(
-                    CultureInfo.InvariantCulture,
-                    "https://nominatim.openstreetmap.org/reverse?format=json&lat={0}&lon={1}&zoom=10&addressdetails=1&accept-language=en",
-                    cluster.Latitude,
-                    cluster.Longitude
-                );
-
-                var response = await httpClient.GetStringAsync(url, ct);
-
-                using var doc = JsonDocument.Parse(response);
-                if (doc.RootElement.TryGetProperty("address", out var address))
-                {
-                    string? city = address.TryGetProperty("city", out var c) ? c.GetString() : null;
-                    string? town = address.TryGetProperty("town", out var t) ? t.GetString() : null;
-                    string? village = address.TryGetProperty("village", out var v) ? v.GetString() : null;
-                    string? suburb = address.TryGetProperty("suburb", out var s) ? s.GetString() : null;
-                    string? state = address.TryGetProperty("state", out var st) ? st.GetString() : null;
-
-                    cluster.Name = city
-                        ?? town
-                        ?? village
-                        ?? (suburb != null && state != null ? $"{suburb}, {state}" :
-                            suburb ?? state ?? $"Cluster #{cluster.Id}");
-                }
-                else
-                {
-                    // fallback
-                    cluster.Name = $"Cluster #{cluster.Id}";
-                }
-
-                // OSM limit(1 req / s)
-                await Task.Delay(1000, ct);
-            }
-            catch
-            {
+            var result = await locationService.ReverseGeocodePlace(cluster.Latitude, cluster.Longitude);
+            if (result.IsSuccess && !string.IsNullOrEmpty(result.Value))
+                cluster.Name = result.Value;
+            else
                 cluster.Name = $"Cluster #{cluster.Id}";
-            }
+            await Task.Delay(1000, ct);
         }
-
         var cacheOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
         memoryCache.Set(cacheKey, clusters, cacheOptions);
-
         return Result<List<ClusterDto>>.Success(clusters);
     }
 
