@@ -1,3 +1,4 @@
+using Application.Geo.Queries.GetDefaultLocation;
 using Application.Geo.Queries.ReverseGeocode;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,8 @@ public class Geo : EndpointGroupBase
     public override void Map(WebApplication app)
     {
         app.MapGroup(this)
-            .MapGet(ReverseGeocode, "reverse");
+            .MapGet(ReverseGeocode, "reverse")
+            .MapGet(GetDefaultLocation, "default");
     }
 
 
@@ -21,6 +23,13 @@ public class Geo : EndpointGroupBase
             Lat = lat,
             Lon = lon
         });
+
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> GetDefaultLocation(ISender sender)
+    {
+        var result = await sender.Send(new GetDefaultLocationQuery());
 
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }

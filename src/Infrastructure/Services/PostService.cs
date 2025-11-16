@@ -510,19 +510,42 @@ public class PostService(ApplicationDbContext dbContext, IMapper mapper, UserMan
         }
 
         var sql = @"
-        SELECT 
-            cluster_id AS ""ClusterId"",
-            ST_Y(ST_Centroid(ST_Collect(""Location""::geometry))) AS ""Latitude"",
-            ST_X(ST_Centroid(ST_Collect(""Location""::geometry))) AS ""Longitude"",
-            COUNT(*) AS ""Count""
-        FROM(
-            SELECT ST_ClusterKMeans(""Location""::geometry, 10) OVER() AS cluster_id, ""Location""
-            FROM ""Posts""
-            WHERE ""Location"" IS NOT NULL
-        ) sub
-        GROUP BY cluster_id
-        ORDER BY ""Count"" DESC
-        ";
+            WITH pts AS (
+                SELECT 
+                    ST_ClusterKMeans(""Location""::geometry, 10) OVER () AS cluster_id,
+                    ""Location""::geometry AS geom
+                FROM ""Posts""
+                WHERE ""Location"" IS NOT NULL
+            ),
+            cent AS (
+                SELECT 
+                    cluster_id,
+                    ST_Centroid(ST_Collect(geom)) AS centroid,
+                    COUNT(*) AS count
+                FROM pts
+                GROUP BY cluster_id
+            ),
+            med AS (
+                SELECT DISTINCT ON (p.cluster_id)
+                    p.cluster_id,
+                    p.geom
+                FROM pts p
+                JOIN cent c ON p.cluster_id = c.cluster_id
+                ORDER BY p.cluster_id, ST_Distance(p.geom, c.centroid)
+            )
+
+            SELECT
+                c.cluster_id AS ""ClusterId"",
+                ST_Y(c.centroid) AS ""CentroidLatitude"",
+                ST_X(c.centroid) AS ""CentroidLongitude"",
+                ST_Y(m.geom) AS ""Latitude"",
+                ST_X(m.geom) AS ""Longitude"",
+                c.count AS ""Count""
+            FROM cent c
+            JOIN med m ON c.cluster_id = m.cluster_id
+            ORDER BY c.count DESC
+            ";
+
 
         var clusters = await dbContext.Clusters
             .FromSqlRaw(sql)
