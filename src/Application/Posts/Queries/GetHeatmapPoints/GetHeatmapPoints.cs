@@ -15,11 +15,11 @@ public class GetHeatmapPointsQuery : IRequest<Result<List<HeatmapPointDto>>>
 
 }
 
-public class GetHeatmapPointsQueryHandler(IPostService postService) : IRequestHandler<GetHeatmapPointsQuery, Result<List<HeatmapPointDto>>>
+public class GetHeatmapPointsQueryHandler(IGeoService geoService) : IRequestHandler<GetHeatmapPointsQuery, Result<List<HeatmapPointDto>>>
 {
     public async Task<Result<List<HeatmapPointDto>>> Handle(GetHeatmapPointsQuery request, CancellationToken ct)
     {
-        return await postService.GetHeatmapPointsAsync(request.MinLon, request.MaxLon, request.MinLat,
+        return await geoService.GetHeatmapPointsAsync(request.MinLon, request.MaxLon, request.MinLat,
             request.MaxLat, request.Zoom, ct);
     }
 }

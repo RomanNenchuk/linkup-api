@@ -8,11 +8,11 @@ public class GetDefaultLocationQuery : IRequest<Result<LocationDto>>
 {
 }
 
-public class GetDefaultLocationQueryHandler(ILocationIqService locationService)
+public class GetDefaultLocationQueryHandler(IGeoService geoService)
     : IRequestHandler<GetDefaultLocationQuery, Result<LocationDto>>
 {
     public async Task<Result<LocationDto>> Handle(GetDefaultLocationQuery request, CancellationToken ct)
     {
-        return await locationService.GetDefaultLocation();
+        return await geoService.GetDefaultLocation();
     }
 }

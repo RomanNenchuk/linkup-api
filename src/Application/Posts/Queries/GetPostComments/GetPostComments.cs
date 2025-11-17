@@ -9,11 +9,11 @@ public class GetPostCommentsQuery : IRequest<Result<List<PostCommentResponseDto>
     public string PostId { get; set; } = null!;
 }
 
-public class GetPostCommentsQueryHandler(IPostService postService)
+public class GetPostCommentsQueryHandler(ICommentService commentService)
     : IRequestHandler<GetPostCommentsQuery, Result<List<PostCommentResponseDto>>>
 {
     public async Task<Result<List<PostCommentResponseDto>>> Handle(GetPostCommentsQuery request, CancellationToken ct)
     {
-        return await postService.GetPostCommentsAsync(request.PostId);
+        return await commentService.GetPostCommentsAsync(request.PostId);
     }
 }

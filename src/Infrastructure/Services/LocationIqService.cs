@@ -11,34 +11,10 @@ using Newtonsoft.Json;
 
 namespace Infrastructure.Services;
 
-public class LocationIqService(HttpClient httpClient, IOptions<LocationIqOptions> options,
-    IApplicationDbContext dbContext) : ILocationIqService
+public class LocationIqService(HttpClient httpClient, IOptions<LocationIqOptions> options) : ILocationIqService
 {
     private readonly string _apiKey = options.Value.ApiKey;
 
-    public async Task<Result<LocationDto>> GetDefaultLocation()
-    {
-        var query = dbContext.Posts
-            .Where(p => p.Location != null && p.PostPhotos.Count > 0);
-
-        var total = await query.CountAsync();
-        if (total == 0) return Result<LocationDto>.Failure("Failed to get a default location");
-        var random = Random.Shared.Next(total);
-
-        var post = await query
-            .Skip(random)
-            .FirstOrDefaultAsync();
-
-        if (post == null) return Result<LocationDto>.Failure("Failed to get a default location");
-
-        var postLocation = new LocationDto
-        {
-            Latitude = post.Location!.Y,
-            Longitude = post.Location.X
-        };
-
-        return Result<LocationDto>.Success(postLocation);
-    }
 
     public async Task<Result<LocationIqResponse?>> ReverseGeocode(double lat, double lon)
     {

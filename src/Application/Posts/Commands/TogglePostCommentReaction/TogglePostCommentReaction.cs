@@ -15,12 +15,12 @@ public class TogglePostCommentLikeRequest
     public bool IsLiked { get; set; }
 }
 
-public class TogglePostCommentReactionCommandHandler(IPostService postService, ICurrentUserService currentUserService)
+public class TogglePostCommentReactionCommandHandler(ICommentService commentService, ICurrentUserService currentUserService)
     : IRequestHandler<TogglePostCommentReactionCommand, Result>
 {
     public async Task<Result> Handle(TogglePostCommentReactionCommand request, CancellationToken ct)
     {
         var userId = currentUserService.Id!;
-        return await postService.TogglePostCommentReactionAsync(request.CommentId, userId, request.IsLiked);
+        return await commentService.TogglePostCommentReactionAsync(request.CommentId, userId, request.IsLiked);
     }
 }

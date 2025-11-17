@@ -43,11 +43,7 @@ public class RegisterCommandHandler(
         {
             try
             {
-                await emailService.SendEmailAsync(
-                    creationResult.Value.Email,
-                    "Email confirmation",
-                    confirmationUrl);
-
+                await emailService.SendEmailAsync(creationResult.Value.Email, "Email confirmation", confirmationUrl);
             }
             catch (Exception ex)
             {

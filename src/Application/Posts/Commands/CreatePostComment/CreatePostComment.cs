@@ -11,7 +11,7 @@ public class CreatePostCommentCommand : IRequest<Result<string>>
     public string? RepliedTo { get; set; }
 }
 
-public class CreatePostCommentCommandHandler(IPostService postService, ICurrentUserService currentUserService)
+public class CreatePostCommentCommandHandler(ICommentService commentService, ICurrentUserService currentUserService)
     : IRequestHandler<CreatePostCommentCommand, Result<string>>
 {
     public async Task<Result<string>> Handle(CreatePostCommentCommand request, CancellationToken ct)
@@ -24,7 +24,7 @@ public class CreatePostCommentCommandHandler(IPostService postService, ICurrentU
             Content = request.Content,
         };
 
-        var postResult = await postService.CreatePostCommentAsync(createPostCommentDto);
+        var postResult = await commentService.CreatePostCommentAsync(createPostCommentDto);
 
         return postResult.IsSuccess && postResult.Value != null
             ? Result<string>.Success(postResult.Value)
