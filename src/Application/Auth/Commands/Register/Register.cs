@@ -38,7 +38,22 @@ public class RegisterCommandHandler(
             return Result<TokenPair>.Failure(saveTokenResult.Error!, saveTokenResult.Code);
 
         string confirmationUrl = linkService.BuildEmailConfirmationLink(verificationTokenResult.Value);
-        await emailService.SendEmailAsync(creationResult.Value.Email, "Email confirmation", confirmationUrl);
+        // Fire-and-forget
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await emailService.SendEmailAsync(
+                    creationResult.Value.Email,
+                    "Email confirmation",
+                    confirmationUrl);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Email send background error: " + ex);
+            }
+        }, ct);
 
         var refreshTokenResult = await tokenService.IssueRefreshToken(creationResult.Value);
         if (!refreshTokenResult.IsSuccess || string.IsNullOrEmpty(refreshTokenResult.Value))
