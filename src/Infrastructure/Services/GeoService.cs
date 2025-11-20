@@ -67,22 +67,22 @@ public class GeoService(ApplicationDbContext dbContext, ILocationIqService locat
         return Result<List<ClusterDto>>.Success(clusters);
     }
 
-    public async Task<Result<List<LocationDto>>> GetUserPostLocations(string userId)
+    public async Task<Result<List<TimestampedPostLocationDto>>> GetUserPostLocations(string userId)
     {
         var posts = await dbContext.Posts
             .Where(p => p.AuthorId == userId && p.Location != null)
             .ToListAsync();
 
         var points = posts
-            .Select(p => new LocationDto
+            .Select(p => new TimestampedPostLocationDto
             {
+                PostId = p.Id,
                 Latitude = p.Location!.Y,
-                Longitude = p.Location.X
+                Longitude = p.Location.X,
+                CreatedAt = p.CreatedAt
             })
             .ToList();
 
-        return Result<List<LocationDto>>.Success(points);
+        return Result<List<TimestampedPostLocationDto>>.Success(points);
     }
-
-
 }
