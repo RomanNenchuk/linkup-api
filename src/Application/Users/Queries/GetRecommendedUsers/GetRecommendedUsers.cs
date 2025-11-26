@@ -16,7 +16,6 @@ public class GetRecommendedUsersQueryHandler(IRecommendationsService recommendat
         CancellationToken ct)
     {
         var currentUserId = currentUserService.Id;
-        if (currentUserId == null) return Result<List<User>>.Failure("Access denied");
         return await recommendationsService.GetRecommendedUsersAsync(currentUserId);
     }
 }

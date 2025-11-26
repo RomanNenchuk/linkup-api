@@ -1,6 +1,7 @@
 using Application.Users.Commands.ToggleFollow;
 using Application.Users.Queries.GetRecommendedUsers;
 using Application.Users.Queries.GetUserInfo;
+using Application.Users.Queries.GetUsersByDisplayName;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Web.Infrastructure;
@@ -12,12 +13,13 @@ public class Users : EndpointGroupBase
     public override void Map(WebApplication app)
     {
         app.MapGroup(this)
-            .MapGet(GetUserInfo, "{userId}");
+            .MapGet(GetUserInfo, "{userId}")
+            .MapGet(GetRecommendedUsers, "recommended")
+            .MapGet(GetUsersByDisplayName, "");
 
         app.MapGroup(this)
             .RequireAuthorization()
-            .MapPost(ToggleFollow, "{followeeId}/toggle-follow")
-            .MapGet(GetRecommendedUsers, "recommended");
+            .MapPost(ToggleFollow, "{followeeId}/toggle-follow");
     }
 
 
@@ -45,6 +47,22 @@ public class Users : EndpointGroupBase
     private async Task<IResult> GetRecommendedUsers(ISender sender)
     {
         var result = await sender.Send(new GetRecommendedUsersQuery());
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private async Task<IResult> GetUsersByDisplayName(
+        ISender sender,
+        [FromQuery] string? cursor,
+        [FromQuery] string displayName,
+        [FromQuery] int pageSize = 10
+    )
+    {
+        var result = await sender.Send(new GetUsersByDisplayNameQuery()
+        {
+            DisplayName = displayName,
+            Cursor = cursor,
+            PageSize = pageSize
+        });
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 }

@@ -4,24 +4,32 @@ using Application.Common.Models;
 using AutoMapper;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 
 namespace Infrastructure.Services;
 
 public class RecommendationsService(ApplicationDbContext dbContext, IMapper mapper) : IRecommendationsService
 {
-    public async Task<Result<List<User>>> GetRecommendedUsersAsync(string userId)
+    public async Task<Result<List<User>>> GetRecommendedUsersAsync(string? userId)
     {
         try
         {
-            var followingIds = await dbContext.UserFollows
-                .Where(f => f.FollowerId == userId)
-                .Select(f => f.FolloweeId)
-                .ToListAsync();
+            var followingIds = new List<string>();
+            var userLocations = new List<Point>();
 
-            var userLocations = await dbContext.Posts
-                .Where(p => p.AuthorId == userId && p.Location != null)
-                .Select(p => p.Location!)
-                .ToListAsync();
+            if (userId != null)
+            {
+                followingIds = await dbContext.UserFollows
+                    .Where(f => f.FollowerId == userId)
+                    .Select(f => f.FolloweeId)
+                    .ToListAsync();
+
+                userLocations = await dbContext.Posts
+                    .Where(p => p.AuthorId == userId && p.Location != null)
+                    .Select(p => p.Location!)
+                    .ToListAsync();
+            }
+
 
             var recommended = new List<string>();
 
