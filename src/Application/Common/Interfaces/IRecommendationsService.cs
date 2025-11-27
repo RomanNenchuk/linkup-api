@@ -1,8 +1,9 @@
 using Application.Common.Models;
+using Application.Users.Queries.GetRecommendedUsers;
 
 namespace Application.Common.Interfaces;
 
 public interface IRecommendationsService
 {
-    Task<Result<List<User>>> GetRecommendedUsersAsync(string? userId);
+    Task<Result<List<RecommendedUserDto>>> GetRecommendedUsersAsync(string? userId);
 }

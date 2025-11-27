@@ -1,12 +1,11 @@
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
-using Application.Common.Models;
 using MediatR;
 
 namespace Application.Users.Queries.GetUsersByDisplayName;
 
-public class GetUsersByDisplayNameQuery : IRequest<Result<PagedResult<User>>>
+public class GetUsersByDisplayNameQuery : IRequest<Result<PagedResult<SearchedUserDto>>>
 {
     public string DisplayName { get; set; } = null!;
     public string? Cursor { get; set; }
@@ -15,9 +14,9 @@ public class GetUsersByDisplayNameQuery : IRequest<Result<PagedResult<User>>>
 }
 
 public class GetUsersByDisplayNameQueryHandler(IUserService userService)
-    : IRequestHandler<GetUsersByDisplayNameQuery, Result<PagedResult<User>>>
+    : IRequestHandler<GetUsersByDisplayNameQuery, Result<PagedResult<SearchedUserDto>>>
 {
-    public async Task<Result<PagedResult<User>>> Handle(GetUsersByDisplayNameQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<SearchedUserDto>>> Handle(GetUsersByDisplayNameQuery request, CancellationToken ct)
     {
         return await userService.GetUsersByDisplayNameAsync(request);
     }

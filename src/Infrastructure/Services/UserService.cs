@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Services;
 
 public class UserService(UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext,
-    IMapper mapper) : IUserService
+    ICurrentUserService currentUser, IMapper mapper) : IUserService
 {
     public async Task<Result<User>> GetUserByIdAsync(string id)
     {
@@ -29,28 +29,43 @@ public class UserService(UserManager<ApplicationUser> userManager, ApplicationDb
         return Result<User>.Success(mapper.Map<User>(applicationUser));
     }
 
-    public async Task<Result<PagedResult<User>>> GetUsersByDisplayNameAsync(GetUsersByDisplayNameQuery query)
+    public async Task<Result<PagedResult<SearchedUserDto>>> GetUsersByDisplayNameAsync(GetUsersByDisplayNameQuery query)
     {
+        string? currentUserId = currentUser.Id;
         int offset = 0;
         if (!string.IsNullOrEmpty(query.Cursor) && int.TryParse(query.Cursor, out var parsed))
             offset = parsed;
 
         var applicationUsers = await dbContext.Users
-            .Where(u => u.DisplayName.Contains(query.DisplayName))
+            .Where(u => EF.Functions.ILike(u.DisplayName, $"%{query.DisplayName}%"))
             .OrderByDescending(u => u.Followers.Count)
             .Skip(offset)
             .Take(query.PageSize)
             .ToListAsync();
 
-        var mappedUsers = mapper.Map<List<User>>(applicationUsers);
+        var followingIds = new List<string>();
+        if (currentUserId != null)
+        {
+            var applicationUserIds = applicationUsers.Select(u => u.Id);
+            followingIds = await dbContext.UserFollows.Where(u => u.FollowerId == currentUserId &&
+                applicationUserIds.Contains(u.FolloweeId)).Select(u => u.FolloweeId).ToListAsync();
+        }
+
+        var mappedUsers = new List<SearchedUserDto>();
+        foreach (var user in applicationUsers)
+        {
+            var mappedUser = mapper.Map<SearchedUserDto>(user);
+            mappedUser.IsFollowed = currentUserId != null && followingIds.Contains(user.Id);
+            mappedUsers.Add(mappedUser);
+        }
         var newCursor = (offset + query.PageSize).ToString();
-        var result = new PagedResult<User>()
+        var result = new PagedResult<SearchedUserDto>()
         {
             Items = mappedUsers,
             NextCursor = newCursor
         };
 
-        return Result<PagedResult<User>>.Success(result);
+        return Result<PagedResult<SearchedUserDto>>.Success(result);
     }
 
 

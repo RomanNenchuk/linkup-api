@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Application.Common.DTOs;
 using Application.Common.Models;
 using Application.Users.Queries.GetUsersByDisplayName;
@@ -11,5 +10,5 @@ public interface IUserService
     Task<Result<User>> GetUserByEmailAsync(string email);
     Task<Result> ToggleFollowAsync(string followerId, string followeeId, bool IsFollowed);
     Task<Result<UserProfileDto>> GetUserInformationAsync(string userId, string? currentUserId = null);
-    Task<Result<PagedResult<User>>> GetUsersByDisplayNameAsync(GetUsersByDisplayNameQuery query);
+    Task<Result<PagedResult<SearchedUserDto>>> GetUsersByDisplayNameAsync(GetUsersByDisplayNameQuery query);
 }

@@ -5,14 +5,14 @@ using MediatR;
 
 namespace Application.Users.Queries.GetRecommendedUsers;
 
-public class GetRecommendedUsersQuery : IRequest<Result<List<User>>>
+public class GetRecommendedUsersQuery : IRequest<Result<List<RecommendedUserDto>>>
 {
 }
 
 public class GetRecommendedUsersQueryHandler(IRecommendationsService recommendationsService, ICurrentUserService currentUserService)
-    : IRequestHandler<GetRecommendedUsersQuery, Result<List<User>>>
+    : IRequestHandler<GetRecommendedUsersQuery, Result<List<RecommendedUserDto>>>
 {
-    public async Task<Result<List<User>>> Handle(GetRecommendedUsersQuery request,
+    public async Task<Result<List<RecommendedUserDto>>> Handle(GetRecommendedUsersQuery request,
         CancellationToken ct)
     {
         var currentUserId = currentUserService.Id;
