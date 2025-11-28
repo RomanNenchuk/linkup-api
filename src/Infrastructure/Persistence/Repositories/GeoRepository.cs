@@ -1,3 +1,4 @@
+using Application.Common.Constants;
 using Application.Common.Interfaces;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
@@ -69,10 +70,12 @@ public class GeoRepository(ApplicationDbContext dbContext) : IGeoRepository
 
     public async Task<List<ClusterDto>> GetPostClustersAsync(CancellationToken ct)
     {
-        var sql = @"
+        var k = ClusterConstants.ClusterCount;
+
+        var sql = $@"
             WITH pts AS (
                 SELECT 
-                    ST_ClusterKMeans(""Location""::geometry, 10) OVER () AS cluster_id,
+                    ST_ClusterKMeans(""Location""::geometry, {k}) OVER () AS cluster_id,
                     ""Location""::geometry AS geom
                 FROM ""Posts""
                 WHERE ""Location"" IS NOT NULL
