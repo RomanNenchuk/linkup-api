@@ -95,6 +95,7 @@ public class Posts : EndpointGroupBase
         [FromServices] ISender sender,
         [FromServices] ICloudinaryService cloudinaryService,
         [FromServices] IPostService postService,
+        [FromServices] IImageValidationService imageValidationService,
         [FromRoute] string postId
         )
     {
@@ -115,6 +116,10 @@ public class Posts : EndpointGroupBase
                 if (file == null || file.Length == 0) continue;
 
                 await using var stream = file.OpenReadStream();
+                if (!imageValidationService.IsValidImage(stream))
+                    return Results.BadRequest("One of the files is not a valid image.");
+                stream.Position = 0; // Move pointer to the begining for Cloudinary
+
                 var uploadResult = await cloudinaryService.UploadImageAsync(stream, file.FileName);
 
                 if (!uploadResult.IsSuccess || uploadResult.Value == null)
