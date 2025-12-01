@@ -46,7 +46,7 @@ public class Auth : EndpointGroupBase
            .MapPost(Logout, "logout");
     }
 
-    private IResult LoginWithGoogle(
+    public IResult LoginWithGoogle(
         [FromQuery] string returnUrl,
         LinkGenerator linkGenerator,
         SignInManager<ApplicationUser> signInManager,
@@ -64,7 +64,7 @@ public class Auth : EndpointGroupBase
     }
 
 
-    private async Task<IResult> GoogleCallback([FromQuery] string returnUrl, HttpContext context,
+    public async Task<IResult> GoogleCallback([FromQuery] string returnUrl, HttpContext context,
         ISender sender, ICookieService cookieService)
     {
         var authResult = await context.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
@@ -80,7 +80,7 @@ public class Auth : EndpointGroupBase
         return Results.Redirect(returnUrl);
     }
 
-    private async Task<IResult> RefreshToken(ISender sender, ICookieService cookieService)
+    public async Task<IResult> RefreshToken(ISender sender, ICookieService cookieService)
     {
         var refreshToken = cookieService.GetCookie("refreshToken");
         if (string.IsNullOrEmpty(refreshToken))
@@ -90,7 +90,7 @@ public class Auth : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> Register(RegisterCommand command, ISender sender, ICookieService cookieService)
+    public async Task<IResult> Register(RegisterCommand command, ISender sender, ICookieService cookieService)
     {
         var result = await sender.Send(command);
         if (!result.IsSuccess || result.Value?.RefreshToken == null || result.Value?.AccessToken == null)
@@ -100,13 +100,13 @@ public class Auth : EndpointGroupBase
         return Results.Ok(result.Value.AccessToken);
     }
 
-    private async Task<IResult> ForgotPassword(ForgotPasswordCommand command, ISender sender)
+    public async Task<IResult> ForgotPassword(ForgotPasswordCommand command, ISender sender)
     {
         var result = await sender.Send(command);
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> ResetPassword(ResetPasswordCommand command, ISender sender)
+    public async Task<IResult> ResetPassword(ResetPasswordCommand command, ISender sender)
     {
         command.VerificationToken = Base64UrlEncoder.Decode(command.VerificationToken);
 
@@ -114,7 +114,7 @@ public class Auth : EndpointGroupBase
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> Login(LoginCommand command, ISender sender, ICookieService cookieService)
+    public async Task<IResult> Login(LoginCommand command, ISender sender, ICookieService cookieService)
     {
         var result = await sender.Send(command);
         if (!result.IsSuccess || result.Value?.RefreshToken == null || result.Value?.AccessToken == null)
@@ -124,19 +124,19 @@ public class Auth : EndpointGroupBase
         return Results.Ok(result.Value.AccessToken);
     }
 
-    private async Task<IResult> ResendEmailVerification(ISender sender)
+    public async Task<IResult> ResendEmailVerification(ISender sender)
     {
         var result = await sender.Send(new ResendEmailVerificationCommand());
         return result.IsSuccess ? Results.Ok("Email resend successfully!") : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetCooldownRemainingSeconds(ISender sender)
+    public async Task<IResult> GetCooldownRemainingSeconds(ISender sender)
     {
         var result = await sender.Send(new GetEmailVerificationCooldownQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> ConfirmEmail(ConfirmEmailCommand command, ISender sender)
+    public async Task<IResult> ConfirmEmail(ConfirmEmailCommand command, ISender sender)
     {
         command.VerificationToken = Base64UrlEncoder.Decode(command.VerificationToken);
 
@@ -144,13 +144,13 @@ public class Auth : EndpointGroupBase
         return result.IsSuccess ? Results.Ok("Email confirmed successfully") : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetCurrentUserInfo(ISender sender)
+    public async Task<IResult> GetCurrentUserInfo(ISender sender)
     {
         var result = await sender.Send(new GetCurrentUserInfoQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> Logout(ISender sender, ICookieService cookieService)
+    public async Task<IResult> Logout(ISender sender, ICookieService cookieService)
     {
         var refreshToken = cookieService.GetCookie("refreshToken");
         if (string.IsNullOrEmpty(refreshToken))

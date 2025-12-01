@@ -16,7 +16,7 @@ public class Geo : EndpointGroupBase
     }
 
 
-    private async Task<IResult> ReverseGeocode(ISender sender, [FromQuery] double lat, [FromQuery] double lon)
+    public async Task<IResult> ReverseGeocode(ISender sender, [FromQuery] double lat, [FromQuery] double lon)
     {
         var result = await sender.Send(new ReverseGeocodeQuery
         {
@@ -27,7 +27,7 @@ public class Geo : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetDefaultLocation(ISender sender)
+    public async Task<IResult> GetDefaultLocation(ISender sender)
     {
         var result = await sender.Send(new GetDefaultLocationQuery());
 

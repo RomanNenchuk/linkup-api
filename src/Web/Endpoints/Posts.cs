@@ -44,7 +44,7 @@ public class Posts : EndpointGroupBase
            .MapPost(CreatePostComment, "{postId}/comments");
     }
 
-    private async Task<IResult> CreatePost(
+    public async Task<IResult> CreatePost(
         [FromForm] CreatePostRequest request,
         [FromServices] ISender sender,
         [FromServices] ICloudinaryService cloudinaryService,
@@ -90,7 +90,7 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> EditPost(
+    public async Task<IResult> EditPost(
         [FromForm] EditPostRequest request,
         [FromServices] ISender sender,
         [FromServices] ICloudinaryService cloudinaryService,
@@ -145,7 +145,7 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetPosts(
+    public async Task<IResult> GetPosts(
         ISender sender,
         [FromQuery] double? latitude,
         [FromQuery] double? longitude,
@@ -175,13 +175,13 @@ public class Posts : EndpointGroupBase
         var result = await sender.Send(query);
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
-    private async Task<IResult> GetPost(ISender sender, [FromRoute] string postId)
+    public async Task<IResult> GetPost(ISender sender, [FromRoute] string postId)
     {
         var result = await sender.Send(new GetPostQuery { PostId = postId });
         return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
     }
 
-    private async Task<IResult> TogglePostReaction(ISender sender, [FromRoute] string postId,
+    public async Task<IResult> TogglePostReaction(ISender sender, [FromRoute] string postId,
         [FromBody] TogglePostLikeRequest request)
     {
         var result = await sender.Send(new TogglePostReactionCommand
@@ -193,7 +193,7 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> TogglePostCommentReaction(ISender sender, [FromRoute] string postId,
+    public async Task<IResult> TogglePostCommentReaction(ISender sender, [FromRoute] string postId,
         [FromRoute] string commentId, [FromBody] TogglePostCommentLikeRequest request)
     {
         var result = await sender.Send(new TogglePostCommentReactionCommand
@@ -205,7 +205,7 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> CreatePostComment(ISender sender, [FromRoute] string postId,
+    public async Task<IResult> CreatePostComment(ISender sender, [FromRoute] string postId,
         [FromBody] CreatePostCommentRequest request)
     {
         var command = new CreatePostCommentCommand
@@ -218,19 +218,19 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> DeletePost(string postId, ISender sender)
+    public async Task<IResult> DeletePost(string postId, ISender sender)
     {
         var result = await sender.Send(new DeletePostCommand { PostId = postId });
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> DeletePostComment(string postId, string commentId, ISender sender)
+    public async Task<IResult> DeletePostComment(string postId, string commentId, ISender sender)
     {
         var result = await sender.Send(new DeletePostCommentCommand { CommentId = commentId });
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetHeatmapPoints(
+    public async Task<IResult> GetHeatmapPoints(
         ISender sender, [FromQuery] double minLat, [FromQuery] double minLon,
         [FromQuery] double maxLat, [FromQuery] double maxLon, [FromQuery] int zoom = 6)
     {
@@ -246,19 +246,19 @@ public class Posts : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetPostClusters(ISender sender)
+    public async Task<IResult> GetPostClusters(ISender sender)
     {
         var result = await sender.Send(new GetPostClustersQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetPostComments([FromRoute] string postId, ISender sender)
+    public async Task<IResult> GetPostComments([FromRoute] string postId, ISender sender)
     {
         var result = await sender.Send(new GetPostCommentsQuery { PostId = postId });
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetUserPostLocations([FromQuery] string userId, ISender sender)
+    public async Task<IResult> GetUserPostLocations([FromQuery] string userId, ISender sender)
     {
         var result = await sender.Send(new GetUserPostLocationsQuery { UserId = userId });
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);

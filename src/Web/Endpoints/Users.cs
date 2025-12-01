@@ -23,7 +23,7 @@ public class Users : EndpointGroupBase
     }
 
 
-    private async Task<IResult> GetUserInfo(ISender sender, string userId)
+    public async Task<IResult> GetUserInfo(ISender sender, string userId)
     {
         var result = await sender.Send(new GetUserInfoQuery
         {
@@ -33,7 +33,7 @@ public class Users : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
     }
 
-    private async Task<IResult> ToggleFollow(ISender sender, [FromRoute] string followeeId, [FromBody] ToggleFollowRequest request)
+    public async Task<IResult> ToggleFollow(ISender sender, [FromRoute] string followeeId, [FromBody] ToggleFollowRequest request)
     {
         var result = await sender.Send(new ToggleFollowCommand
         {
@@ -44,13 +44,13 @@ public class Users : EndpointGroupBase
         return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetRecommendedUsers(ISender sender)
+    public async Task<IResult> GetRecommendedUsers(ISender sender)
     {
         var result = await sender.Send(new GetRecommendedUsersQuery());
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private async Task<IResult> GetUsersByDisplayName(
+    public async Task<IResult> GetUsersByDisplayName(
         ISender sender,
         [FromQuery] string? cursor,
         [FromQuery] string displayName,
