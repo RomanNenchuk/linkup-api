@@ -8,7 +8,7 @@ public class CreatePostCommentCommandValidator : AbstractValidator<CreatePostCom
     {
         RuleFor(x => x.Content)
             .NotEmpty().WithMessage("Content is required")
-            .MinimumLength(5).WithMessage("Content is too short")
+            .MinimumLength(3).WithMessage("Content is too short")
             .MaximumLength(300).WithMessage("Content is too long");
     }
 }
