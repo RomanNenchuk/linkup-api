@@ -1,4 +1,5 @@
 using System.Text;
+using Application.Common.Behaviors;
 using Application.Common.Interfaces;
 using Application.Common.Options;
 using FluentValidation;
@@ -8,6 +9,7 @@ using Infrastructure.Identity.Mappings;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +33,9 @@ builder.Services.Configure<LocationIqOptions>(
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICookieService, CookieService>();
 builder.Services.AddMemoryCache();
+
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 

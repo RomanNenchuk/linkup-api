@@ -1,7 +1,6 @@
-using Application.Posts.Commands.CreatePost;
 using FluentValidation;
 
-namespace Application.Post.Commands.CreatePost;
+namespace Application.Posts.Commands.CreatePost;
 
 public class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
 {
