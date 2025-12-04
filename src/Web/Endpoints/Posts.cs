@@ -105,9 +105,9 @@ public class Posts : EndpointGroupBase
         if (request.PhotosToAdd != null && request.PhotosToAdd.Count > 0)
         {
             var validationResult = await postService.ValidatePhotoLimitAsync(postId, request.PhotosToAdd.Count,
-                request.PostPhotosToDelete, CancellationToken.None);
+                request.PhotosToDelete, CancellationToken.None);
             if (!validationResult.IsSuccess)
-                return Results.BadRequest($"You can't upload more that {PostConstants.MaxPhotosPerPost} photos.");
+                return Results.BadRequest(validationResult.Error);
         }
 
         if (request.PhotosToAdd != null && request.PhotosToAdd.Count != 0)
@@ -138,7 +138,7 @@ public class Posts : EndpointGroupBase
             Longitude = request.Longitude,
             Address = request.Address,
             PhotosToAdd = uploadedAssets,
-            PhotosToDelete = request.PostPhotosToDelete
+            PhotosToDelete = request.PhotosToDelete
         };
 
         var result = await sender.Send(command);

@@ -7,6 +7,6 @@ public class EditPostRequest
     public double? Longitude { get; set; }
     public string? Address { get; set; }
     public IFormFileCollection? PhotosToAdd { get; set; }
-    public List<string>? PostPhotosToDelete { get; set; }
+    public List<string>? PhotosToDelete { get; set; }
 }
 

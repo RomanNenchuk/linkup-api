@@ -229,7 +229,7 @@ public class PostService(IMapper mapper, UserManager<ApplicationUser> userManage
 
     public async Task<Result> ValidatePhotoLimitAsync(string postId, int photosToAddCount, List<string>? photosToDeleteList, CancellationToken ct)
     {
-        var post = await postRepo.GetPostByIdAsync(postId, ct);
+        var post = await postRepo.GetPostWithPhotosAsync(postId, ct);
         if (post == null) return Result.Failure("Post not found");
         var uniquePhotosToDelete = photosToDeleteList?.Distinct().ToList() ?? [];
 
