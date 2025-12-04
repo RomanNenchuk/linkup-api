@@ -13,5 +13,8 @@ public class UserProfile : Profile
         CreateMap<ApplicationUser, SearchedUserDto>();
         CreateMap<ApplicationUser, UserProfileDto>()
                 .ForMember(dto => dto.IsVerified, opt => opt.MapFrom(src => src.EmailConfirmed));
+        CreateMap<User, UserProfileDto>()
+            .ForMember(dto => dto.IsVerified, opt => opt.MapFrom(src => src.EmailConfirmed));
+        CreateMap<User, SearchedUserDto>();
     }
 }

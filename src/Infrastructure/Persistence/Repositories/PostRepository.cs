@@ -186,4 +186,29 @@ public class PostRepository(ApplicationDbContext dbContext, IMapper mapper) : IP
         return Task.FromResult(dbContext.SaveChangesAsync(ct).Result > 0);
     }
 
+    public Task<List<Point>> GetUserLocationsAsync(string? userId, CancellationToken ct)
+    {
+        if (userId == null) return Task.FromResult(new List<Point>());
+        return dbContext.Posts.Where(p => p.AuthorId == userId && p.Location != null).Select(p => p.Location!).ToListAsync(ct);
+    }
+
+    public async Task<List<(string UserId, int SameLocations)>> GetLocationCandidateAuthorsAsync(
+        string? userId, List<string> followingIds, List<Point> userLocations, double radiusMeters, int limit, CancellationToken ct)
+    {
+        if (userLocations.Count == 0) return [];
+
+        var candidates = await dbContext.Posts
+            .Where(p =>
+                p.AuthorId != userId &&
+                !followingIds.Contains(p.AuthorId) &&
+                p.Location != null &&
+                userLocations.Any(loc => loc.Distance(p.Location!) <= radiusMeters))
+            .GroupBy(p => p.AuthorId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return candidates.Select(c => (c.UserId, c.Count)).ToList();
+    }
 }

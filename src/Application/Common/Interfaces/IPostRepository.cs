@@ -1,5 +1,6 @@
 using Application.Common.Models;
 using Domain.Entities;
+using NetTopologySuite.Geometries;
 
 namespace Application.Common.Interfaces;
 
@@ -19,5 +20,8 @@ public interface IPostRepository
     Task<Post?> GetPostByIdAsync(string postId, CancellationToken ct);
     Task<Result> DeletePostAsync(Post post, CancellationToken ct);
     Task AddPostAsync(Post post, CancellationToken ct);
+    Task<List<Point>> GetUserLocationsAsync(string? userId, CancellationToken ct);
+    Task<List<(string UserId, int SameLocations)>> GetLocationCandidateAuthorsAsync(string? userId,
+        List<string> followingIds, List<Point> userLocations, double radiusMeters, int limit, CancellationToken ct);
     Task<bool> SaveChangesAsync(CancellationToken ct);
 }

@@ -1,23 +1,26 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Application.Common;
 using Application.Common.Interfaces;
 using Application.Common.Models;
 using Application.Common.Options;
+using AutoMapper;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity;
-using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Infrastructure.Services;
 
-public class TokenService(IOptions<JwtOptions> jwtOptions, UserManager<ApplicationUser> userManager,
-     ApplicationDbContext dbContext) : ITokenService
+public class TokenService(
+    IOptions<JwtOptions> jwtOptions,
+    UserManager<ApplicationUser> userManager,
+    IRefreshTokenRepository refreshTokenRepo,
+    IVerificationTokenRepository verificationTokenRepo
+    ) : ITokenService
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
@@ -45,10 +48,7 @@ public class TokenService(IOptions<JwtOptions> jwtOptions, UserManager<Applicati
 
     public string GenerateRefreshToken(User user)
     {
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-        };
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.Id) };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.RefreshToken.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -66,26 +66,21 @@ public class TokenService(IOptions<JwtOptions> jwtOptions, UserManager<Applicati
     public async Task<Result<string>> IssueRefreshToken(User user)
     {
         var refreshToken = GenerateRefreshToken(user);
-        dbContext.RefreshTokens.Add(new RefreshToken
+        var entity = new RefreshToken
         {
             Token = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshToken.ExpireDays),
             UserId = user.Id
-        });
+        };
 
-        var dbResult = await dbContext.SaveChangesAsync() > 0;
-        return dbResult
-            ? Result<string>.Success(refreshToken)
-            : Result<string>.Failure("Failed to save refresh token", 400);
+        await refreshTokenRepo.AddAsync(entity, CancellationToken.None);
+
+        return Result<string>.Success(refreshToken);
     }
 
     public string GenerateVerificationToken(User user)
     {
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim("token-type", "verification")
-        };
+        var claims = new[] { new Claim(JwtRegisteredClaimNames.Sub, user.Id), new Claim("token-type", "verification") };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.VerificationToken.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -103,46 +98,36 @@ public class TokenService(IOptions<JwtOptions> jwtOptions, UserManager<Applicati
     public async Task<Result<string>> IssueVerificationToken(User user, VerificationTokenType type)
     {
         var verificationToken = GenerateVerificationToken(user);
-        dbContext.VerificationTokens.Add(new VerificationToken
+
+        var entity = new VerificationToken
         {
             Token = verificationToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.VerificationToken.ExpireMinutes),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.VerificationToken.ExpireMinutes),
             Type = type,
             UserId = user.Id
-        });
+        };
 
-        var dbResult = await dbContext.SaveChangesAsync() > 0;
-        return dbResult
-            ? Result<string>.Success(verificationToken)
-            : Result<string>.Failure("Failed to save verification token", 400);
+        await verificationTokenRepo.AddAsync(entity);
+
+        return Result<string>.Success(verificationToken);
     }
 
     public async Task<int> GetCooldownRemainingSecondsAsync(string userId, VerificationTokenType type)
     {
-        var lastToken = await dbContext.VerificationTokens
-            .Where(t => t.UserId == userId && t.Type == type)
-            .OrderByDescending(t => t.CreatedAt)
-            .FirstOrDefaultAsync();
-
-        if (lastToken == null)
-            return 0;
-
+        var lastToken = await verificationTokenRepo.GetLastTokenAsync(userId, type);
+        if (lastToken == null) return 0;
         var cooldownUntil = lastToken.CreatedAt.AddSeconds(_jwtOptions.VerificationToken.CooldownSeconds);
         var remaining = (int)(cooldownUntil - DateTime.UtcNow).TotalSeconds;
-
         return remaining > 0 ? remaining : 0;
     }
 
     public async Task<Result<string>> GenerateEmailConfirmationTokenAsync(User user)
     {
         var applicationUser = await userManager.FindByEmailAsync(user.Email);
-        if (applicationUser == null)
-            return Result<string>.Failure("User not found", 404);
+        if (applicationUser == null) return Result<string>.Failure("User not found", 404);
 
         var token = await userManager.GenerateEmailConfirmationTokenAsync(applicationUser);
-
-        if (string.IsNullOrEmpty(token))
-            return Result<string>.Failure("Failed to generate email confirmation token", 400);
+        if (string.IsNullOrEmpty(token)) return Result<string>.Failure("Failed to generate email confirmation token", 400);
 
         return Result<string>.Success(token);
     }
@@ -150,30 +135,25 @@ public class TokenService(IOptions<JwtOptions> jwtOptions, UserManager<Applicati
     public async Task<Result<string>> GeneratePasswordResetTokenAsync(User user)
     {
         var applicationUser = await userManager.FindByEmailAsync(user.Email);
-        if (applicationUser == null)
-            return Result<string>.Failure("User not found", 404);
+        if (applicationUser == null) return Result<string>.Failure("User not found", 404);
 
         var token = await userManager.GeneratePasswordResetTokenAsync(applicationUser);
-
-        if (string.IsNullOrEmpty(token))
-            return Result<string>.Failure("Failed to generate password reset token", 400);
+        if (string.IsNullOrEmpty(token)) return Result<string>.Failure("Failed to generate password reset token", 400);
 
         return Result<string>.Success(token);
     }
 
     public async Task<Result> SaveVerificationTokenAsync(string token, string userId, VerificationTokenType type)
     {
-        dbContext.VerificationTokens.Add(new VerificationToken
+        var entity = new VerificationToken
         {
             Token = token,
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.VerificationToken.ExpireMinutes),
             Type = type,
             UserId = userId
-        });
+        };
 
-        var dbResult = await dbContext.SaveChangesAsync() > 0;
-        return dbResult
-            ? Result.Success()
-            : Result.Failure("Failed to save verification token", 400);
+        await verificationTokenRepo.AddAsync(entity);
+        return Result.Success();
     }
 }

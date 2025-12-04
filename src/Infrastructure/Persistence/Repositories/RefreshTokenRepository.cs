@@ -16,4 +16,10 @@ public class RefreshTokenRepository(ApplicationDbContext dbContext) : IRefreshTo
         token.RevokedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task AddAsync(RefreshToken token, CancellationToken ct = default)
+    {
+        dbContext.RefreshTokens.Add(token);
+        await dbContext.SaveChangesAsync(ct);
+    }
 }

@@ -6,106 +6,101 @@ using Application.Users.Queries.GetUsersByDisplayName;
 using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Identity;
-using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services;
 
-public class UserService(UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext,
-    ICurrentUserService currentUser, IMapper mapper) : IUserService
+public class UserService(
+    UserManager<ApplicationUser> userManager,
+    IUserRepository userRepository,
+    IUserFollowRepository userFollowRepository,
+    ICurrentUserService currentUser,
+    IMapper mapper) : IUserService
 {
     public async Task<Result<User>> GetUserByIdAsync(string id)
     {
-        var applicationUser = await userManager.FindByIdAsync(id);
-        if (applicationUser == null) return Result<User>.Failure("User not found", 404);
-        return Result<User>.Success(mapper.Map<User>(applicationUser));
+        var user = await userRepository.FindByIdAsync(id);
+        if (user == null) return Result<User>.Failure("User not found", 404);
+        return Result<User>.Success(user);
     }
 
     public async Task<Result<User>> GetUserByEmailAsync(string email)
     {
-        var applicationUser = await userManager.FindByEmailAsync(email);
-        if (applicationUser == null) return Result<User>.Failure("User not found", 404);
-        return Result<User>.Success(mapper.Map<User>(applicationUser));
+        var user = await userRepository.FindByEmailAsync(email);
+        if (user == null) return Result<User>.Failure("User not found", 404);
+        return Result<User>.Success(user);
     }
 
     public async Task<Result<PagedResult<SearchedUserDto>>> GetUsersByDisplayNameAsync(GetUsersByDisplayNameQuery query)
     {
         string? currentUserId = currentUser.Id;
+
         int offset = 0;
         if (!string.IsNullOrEmpty(query.Cursor) && int.TryParse(query.Cursor, out var parsed))
             offset = parsed;
 
-        var applicationUsers = await dbContext.Users
-            .Where(u => EF.Functions.ILike(u.DisplayName, $"%{query.DisplayName}%"))
-            .OrderByDescending(u => u.Followers.Count)
-            .Skip(offset)
-            .Take(query.PageSize)
-            .ToListAsync();
+        var users = await userRepository.SearchByDisplayNameAsync(query.DisplayName, offset, query.PageSize);
 
-        var followingIds = new List<string>();
+        List<string> followingIds = [];
         if (currentUserId != null)
         {
-            var applicationUserIds = applicationUsers.Select(u => u.Id);
-            followingIds = await dbContext.UserFollows.Where(u => u.FollowerId == currentUserId &&
-                applicationUserIds.Contains(u.FolloweeId)).Select(u => u.FolloweeId).ToListAsync();
+            var userIds = users.Select(u => u.Id).ToList();
+
+            followingIds = await userFollowRepository
+                .GetFolloweeIdsAsync(currentUserId, CancellationToken.None);
         }
 
-        var mappedUsers = new List<SearchedUserDto>();
-        foreach (var user in applicationUsers)
+        var mapped = users.Select(u =>
         {
-            var mappedUser = mapper.Map<SearchedUserDto>(user);
-            mappedUser.IsFollowed = currentUserId != null && followingIds.Contains(user.Id);
-            mappedUsers.Add(mappedUser);
-        }
+            var dto = mapper.Map<SearchedUserDto>(u);
+            dto.IsFollowed = currentUserId != null && followingIds.Contains(u.Id);
+            return dto;
+        }).ToList();
+
         var newCursor = (offset + query.PageSize).ToString();
-        var result = new PagedResult<SearchedUserDto>()
-        {
-            Items = mappedUsers,
-            NextCursor = newCursor
-        };
 
-        return Result<PagedResult<SearchedUserDto>>.Success(result);
+        return Result<PagedResult<SearchedUserDto>>.Success(
+            new PagedResult<SearchedUserDto>
+            {
+                Items = mapped,
+                NextCursor = newCursor
+            });
     }
 
-
-    public async Task<Result> ToggleFollowAsync(string followerId, string followeeId, bool IsFollowed)
+    public async Task<Result> ToggleFollowAsync(string followerId, string followeeId, bool isFollowed)
     {
         var followee = await userManager.FindByIdAsync(followeeId);
         if (followee == null) return Result.Failure("Followee not found");
 
-        var existingUserFollow = await dbContext.UserFollows.FirstOrDefaultAsync(x =>
-            x.FollowerId == followerId && x.FolloweeId == followeeId);
+        var relation = await userFollowRepository.GetFollowRelationAsync(followerId, followeeId, CancellationToken.None);
 
-        if (existingUserFollow == null)
-            dbContext.UserFollows.Add(new UserFollow { FollowerId = followerId, FolloweeId = followeeId });
-        else dbContext.Remove(existingUserFollow);
+        if (relation == null)
+        {
+            await userFollowRepository.AddFollowAsync(
+                new UserFollow { FollowerId = followerId, FolloweeId = followeeId },
+                CancellationToken.None);
+        }
+        else
+        {
+            await userFollowRepository.RemoveFollowAsync(relation, CancellationToken.None);
+        }
 
-        var result = await dbContext.SaveChangesAsync() > 0;
-
-        return result ? Result.Success() : Result.Failure("Failed to toggle follow state");
-
+        return Result.Success();
     }
 
     public async Task<Result<UserProfileDto>> GetUserInformationAsync(string userId, string? currentUserId)
     {
-        var user = await dbContext.Users
-            .Include(u => u.Followers)
-            .Include(u => u.Followings)
-            .FirstOrDefaultAsync(u => u.Id == userId);
-
+        var user = await userRepository.GetUserWithFollowRelationsAsync(userId);
         if (user == null)
             return Result<UserProfileDto>.Failure("User not found");
 
-        var userInfo = mapper.Map<UserProfileDto>(user);
-        userInfo.FollowersCount = user.Followers.Count;
-        userInfo.FollowingCount = user.Followings.Count;
+        var dto = mapper.Map<UserProfileDto>(user);
 
-        if (currentUserId != null) userInfo.IsFollowing = user.Followers.Any(f => f.FollowerId == currentUserId);
-        else userInfo.IsFollowing = false;
+        dto.FollowersCount = user.FollowersCount;
+        dto.FollowingCount = user.FollowingCount;
 
+        dto.IsFollowing = currentUserId != null && user.FollowerIds.Contains(currentUserId);
 
-        return Result<UserProfileDto>.Success(userInfo);
+        return Result<UserProfileDto>.Success(dto);
     }
-
 }
