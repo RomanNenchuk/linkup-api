@@ -1,4 +1,5 @@
 using Application.Common.Constants;
+using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using Application.Posts.Queries.GetHeatmapPoints;
 using Application.Posts.Queries.GetPostClusters;
@@ -116,6 +117,20 @@ public class GeoRepository(ApplicationDbContext dbContext) : IGeoRepository
                 Latitude = c.Latitude,
                 Longitude = c.Longitude,
                 Count = c.Count
+            })
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<TimestampedPostLocationDto>> GetUserPostLocationsAsync(string userId, CancellationToken ct)
+    {
+        return await dbContext.Posts
+            .Where(p => p.AuthorId == userId && p.Location != null)
+            .Select(p => new TimestampedPostLocationDto
+            {
+                PostId = p.Id,
+                Latitude = p.Location!.Y,
+                Longitude = p.Location.X,
+                CreatedAt = p.CreatedAt
             })
             .ToListAsync(ct);
     }

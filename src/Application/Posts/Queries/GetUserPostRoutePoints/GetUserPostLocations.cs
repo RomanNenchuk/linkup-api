@@ -10,11 +10,12 @@ public class GetUserPostLocationsQuery : IRequest<Result<List<TimestampedPostLoc
     public string UserId { get; set; } = null!;
 }
 
-public class GetUserPostLocationsQueryHandler(IGeoService geoService)
+public class GetUserPostLocationsQueryHandler(IGeoRepository geoRepository)
     : IRequestHandler<GetUserPostLocationsQuery, Result<List<TimestampedPostLocationDto>>>
 {
     public async Task<Result<List<TimestampedPostLocationDto>>> Handle(GetUserPostLocationsQuery request, CancellationToken ct)
     {
-        return await geoService.GetUserPostLocations(request.UserId);
+        var points = await geoRepository.GetUserPostLocationsAsync(request.UserId, ct);
+        return Result<List<TimestampedPostLocationDto>>.Success(points);
     }
 }

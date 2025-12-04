@@ -66,23 +66,4 @@ public class GeoService(ApplicationDbContext dbContext, ILocationIqService locat
         memoryCache.Set(cacheKey, clusters, cacheOptions);
         return Result<List<ClusterDto>>.Success(clusters);
     }
-
-    public async Task<Result<List<TimestampedPostLocationDto>>> GetUserPostLocations(string userId)
-    {
-        var posts = await dbContext.Posts
-            .Where(p => p.AuthorId == userId && p.Location != null)
-            .ToListAsync();
-
-        var points = posts
-            .Select(p => new TimestampedPostLocationDto
-            {
-                PostId = p.Id,
-                Latitude = p.Location!.Y,
-                Longitude = p.Location.X,
-                CreatedAt = p.CreatedAt
-            })
-            .ToList();
-
-        return Result<List<TimestampedPostLocationDto>>.Success(points);
-    }
 }
