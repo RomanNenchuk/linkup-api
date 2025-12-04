@@ -8,7 +8,12 @@ namespace Application.Auth.Commands.Register;
 
 public class RegisterCommand : IRequest<Result<TokenPair>>
 {
-    public string Email { get; set; } = null!;
+    private string _email = string.Empty;
+    public string Email
+    {
+        get => _email;
+        set => _email = value?.Trim() ?? string.Empty;
+    }
     public string DisplayName { get; set; } = null!;
     public string Password { get; set; } = null!;
 

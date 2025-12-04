@@ -1,11 +1,7 @@
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
-using Application.Common.Options;
-using AutoMapper;
-using Domain.Enums;
 using MediatR;
-using Microsoft.Extensions.Options;
 
 namespace Application.Auth.Commands.Login;
 

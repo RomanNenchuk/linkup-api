@@ -10,7 +10,7 @@ public class ResetPasswordCommand : IRequest<Result>
     public string NewPassword { get; set; } = null!;
 }
 
-public class RefreshTokenCommandHandler(IAccountService accountService) : IRequestHandler<ResetPasswordCommand, Result>
+public class ResetPasswordCommandHandler(IAccountService accountService) : IRequestHandler<ResetPasswordCommand, Result>
 {
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken ct)
     {

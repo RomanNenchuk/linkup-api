@@ -10,12 +10,12 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
             .NotEmpty().WithMessage("Please specify your name")
             .MinimumLength(2).WithMessage("Please enter a valid name")
             .MaximumLength(50).WithMessage("Please enter a valid name")
-            .Must(name => name == name.Trim()).WithMessage("Please enter a valid name");
+            .Must(name => name is null || name == name.Trim()).WithMessage("Please enter a valid name");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Please enter a valid email address")
-            .Must(email => email == email.Trim()).WithMessage("Please enter a valid email address");
+            .Must(email => email is null || email == email.Trim()).WithMessage("Please enter a valid email address");
 
         RuleFor(x => x.Password)
             .NotEmpty()

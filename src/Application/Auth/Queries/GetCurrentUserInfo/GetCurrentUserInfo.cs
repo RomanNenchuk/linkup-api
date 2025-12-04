@@ -16,9 +16,9 @@ public class GetCurrentUserInfoQueryHandler(ICurrentUserService currentUserServi
     {
         string userId = currentUserService.Id!;
         var userResult = await userService.GetUserInformationAsync(userId);
-        if (userResult.IsSuccess && userResult.Value != null)
-            return Result<UserProfileDto>.Success(userResult.Value);
 
-        return Result<UserProfileDto>.Failure(userResult.Error!, userResult.Code);
+        return userResult.IsSuccess && userResult.Value != null
+            ? Result<UserProfileDto>.Success(userResult.Value)
+            : Result<UserProfileDto>.Failure(userResult.Error!, userResult.Code);
     }
 }
