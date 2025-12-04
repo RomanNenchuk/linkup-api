@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
-public class ReactionRepository(ApplicationDbContext dbContext) : IReactionRepository
+public class PostReactionRepository(ApplicationDbContext dbContext) : IPostReactionRepository
 {
     public Task<PostReaction?> GetReactionAsync(string postId, string userId, CancellationToken ct = default)
     {

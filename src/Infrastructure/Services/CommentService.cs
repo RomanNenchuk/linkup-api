@@ -1,27 +1,29 @@
 using Application.Common;
 using Application.Common.Interfaces;
-using Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
-using Infrastructure.Identity;
-using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using AutoMapper.QueryableExtensions;
-using AutoMapper;
-using Application.PostComments.Queries.GetPostComments;
 using Application.PostComments.Commands.CreatePostComment;
-
+using Application.PostComments.Queries.GetPostComments;
+using AutoMapper;
+using Domain.Entities;
+using Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services;
 
-public class CommentService(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager,
-    ICurrentUserService currentUser, IMapper mapper) : ICommentService
+public class CommentService(
+    ICommentRepository commentRepo,
+    ICommentReactionRepository reactionRepo,
+    IPostRepository postRepo,
+    UserManager<ApplicationUser> userManager,
+    ICurrentUserService currentUser,
+    IMapper mapper) : ICommentService
 {
     public async Task<Result<string>> CreatePostCommentAsync(CreatePostCommentDto dto)
     {
         var user = await userManager.FindByIdAsync(dto.AuthorId);
         if (user == null) return Result<string>.Failure("User not found");
 
-        var post = await dbContext.Posts.FirstOrDefaultAsync(p => p.Id == dto.PostId);
+        var post = await postRepo.GetPostWithPhotosAsync(dto.PostId, CancellationToken.None);
         if (post == null) return Result<string>.Failure("Post not found");
 
         var comment = new PostComment
@@ -30,73 +32,82 @@ public class CommentService(ApplicationDbContext dbContext, UserManager<Applicat
             PostId = dto.PostId,
             AuthorId = dto.AuthorId,
             RepliedTo = dto.RepliedTo,
+            CreatedAt = DateTime.UtcNow
         };
 
-        dbContext.Add(comment);
-        var result = await dbContext.SaveChangesAsync() > 0;
-        return result ? Result<string>.Success(post.Id) : Result<string>.Failure("Failed to create comment");
+        await commentRepo.AddAsync(comment, CancellationToken.None);
+
+        return Result<string>.Success(post.Id);
     }
 
     public async Task<Result> DeletePostCommentAsync(string commentId)
     {
-        var comment = await dbContext.PostComments.FirstOrDefaultAsync(pc => pc.Id == commentId);
+        var comment = await commentRepo.GetByIdAsync(commentId, CancellationToken.None);
         if (comment == null) return Result.Failure("Comment not found");
-        if (comment.AuthorId != currentUser.Id!) return Result.Failure("Access denied");
 
-        dbContext.Remove(comment);
-        var result = await dbContext.SaveChangesAsync() > 0;
-        return result ? Result.Success() : Result.Failure("Failed to delete the comment");
+        if (comment.AuthorId != currentUser.Id!)
+            return Result.Failure("Access denied");
+
+        await commentRepo.RemoveAsync(comment, CancellationToken.None);
+        return Result.Success();
     }
 
     public async Task<Result<List<PostCommentResponseDto>>> GetPostCommentsAsync(string postId)
     {
+        var ct = CancellationToken.None;
         var userId = currentUser.Id;
-        var comments = await dbContext.PostComments
-            .Where(c => c.PostId == postId)
-            .ProjectTo<PostCommentResponseDto>(mapper.ConfigurationProvider)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
 
-        var authorIds = comments.Select(c => c.Author.Id).Distinct().ToList();
+        var comments = await commentRepo.GetPostCommentsAsync(postId, ct);
+
+        var dtoList = mapper.Map<List<PostCommentResponseDto>>(comments);
+
+        // Load authors
+        var authorIds = dtoList.Select(c => c.Author.Id).Distinct().ToList();
 
         var authors = await userManager.Users
             .Where(u => authorIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
 
-        var commentIds = comments.Select(c => c.Id).ToList();
-
-        var likedCommentIds = await dbContext.PostCommentReactions
-            .Where(r => r.UserId == userId && commentIds.Contains(r.PostCommentId))
-            .Select(r => r.PostCommentId)
-            .ToListAsync();
-
-        foreach (var comment in comments)
+        foreach (var commentDto in dtoList)
         {
-            if (authors.TryGetValue(comment.Author.Id, out var displayName))
-                comment.Author.DisplayName = displayName;
-            if (userId != null)
-                comment.IsLikedByCurrentUser = likedCommentIds.Contains(comment.Id);
+            if (authors.TryGetValue(commentDto.Author.Id, out var displayName))
+                commentDto.Author.DisplayName = displayName;
         }
 
-        return Result<List<PostCommentResponseDto>>.Success(comments);
+        // Likes
+        if (userId != null)
+        {
+            var commentIds = dtoList.Select(c => c.Id).ToList();
+            var likedIds = await reactionRepo.GetLikedCommentIdsAsync(userId, commentIds, ct);
+
+            foreach (var dto in dtoList)
+                dto.IsLikedByCurrentUser = likedIds.Contains(dto.Id);
+        }
+
+        return Result<List<PostCommentResponseDto>>.Success(dtoList);
     }
+
     public async Task<Result> TogglePostCommentReactionAsync(string commentId, string userId, bool isLiked)
     {
-        var comment = await dbContext.PostComments.FirstOrDefaultAsync(x => x.Id == commentId);
+        var ct = CancellationToken.None;
+
+        var comment = await commentRepo.GetByIdAsync(commentId, ct);
         if (comment == null) return Result.Failure("Comment does not exist");
 
-        var reaction = await dbContext.PostCommentReactions
-            .FirstOrDefaultAsync(x => x.PostCommentId == commentId && x.UserId == userId);
+        var reaction = await reactionRepo.GetReactionAsync(commentId, userId, ct);
+
         if (reaction == null && isLiked)
-            dbContext.Add(new PostCommentReaction { UserId = userId, PostCommentId = commentId });
+        {
+            await reactionRepo.AddReactionAsync(
+                new PostCommentReaction { UserId = userId, PostCommentId = commentId },
+                ct
+            );
+        }
         else if (reaction != null && !isLiked)
-            dbContext.Remove(reaction);
-        else
-            return Result.Success(); // already in desired state
+        {
+            await reactionRepo.RemoveReactionAsync(reaction, ct);
+        }
 
-        var result = await dbContext.SaveChangesAsync() > 0;
-
-        return result ? Result.Success() : Result.Failure("Failed to toggle reaction");
+        return Result.Success();
     }
-
 }

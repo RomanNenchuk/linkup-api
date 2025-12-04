@@ -15,9 +15,9 @@ using NetTopologySuite.Geometries;
 
 namespace Infrastructure.Services;
 
-public class PostService(IMapper mapper, UserManager<ApplicationUser> userManager,
-    ICurrentUserService currentUser, ICloudinaryService cloudinaryService, IPostRepository postRepo,
-    IUserFollowRepository userFollowRepo, IReactionRepository reactionRepo) : IPostService
+public class PostService(IMapper mapper, UserManager<ApplicationUser> userManager, ICurrentUserService currentUser,
+    ICloudinaryService cloudinaryService, IPostRepository postRepo, IUserFollowRepository userFollowRepo,
+    IPostReactionRepository reactionRepo) : IPostService
 {
     public async Task<Result<string>> CreatePostAsync(CreatePostDto dto)
     {
