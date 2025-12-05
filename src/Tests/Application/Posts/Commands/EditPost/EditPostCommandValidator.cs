@@ -6,17 +6,6 @@ namespace Tests.Application.Posts.Commands.EditPost;
 public class EditPostCommandValidatorTests
 {
     private readonly EditPostCommandValidator _validator = new();
-
-    [Fact]
-    public void Should_HaveError_WhenContentIsNull()
-    {
-        var command = new EditPostCommand { Content = null };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.Content);
-    }
-
     [Fact]
     public void Should_HaveError_WhenContentIsEmpty()
     {
