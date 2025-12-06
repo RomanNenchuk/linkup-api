@@ -13,7 +13,7 @@ public class RecommendationsService(
     IMapper mapper) : IRecommendationsService
 {
     private const int MaxCount = 20;
-    private const double RadiusMeters = 1000;
+    private const double RadiusMeters = 5000;
 
     public async Task<Result<List<RecommendedUserDto>>> GetRecommendedUsersAsync(string? userId)
     {
