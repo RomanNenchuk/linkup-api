@@ -76,6 +76,7 @@ public class UserRepository(ApplicationDbContext dbContext) : IUserRepository
             Id = u.Id,
             DisplayName = u.DisplayName,
             Email = u.Email!,
+            EmailConfirmed = u.EmailConfirmed,
             FollowersCount = u.Followers.Count,
             FollowingCount = u.Followings.Count,
             FollowerIds = u.Followers.Select(f => f.FollowerId).ToList(),

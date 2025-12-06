@@ -40,7 +40,24 @@ public class ForgotPasswordCommandHandler(
             return Result.Failure(saveTokenResult.Error!, saveTokenResult.Code);
 
         string resetUrl = linkService.BuildPasswordResetLink(verificationTokenResult.Value);
-        var emailResult = await emailService.SendEmailAsync(userResult.Value.Email, "Email reset", resetUrl);
+        var emailBody = emailService.BuildEmailTemplate(
+            title: "Reset your password",
+            message:
+                "We received a request to reset your account password. " +
+                "Click the button below to choose a new password.",
+            actionUrl: resetUrl,
+            actionText: "Reset password",
+            footerNote:
+                "If you did not request a password reset, please ignore this email. " +
+                "Your password will remain unchanged."
+        );
+
+        var emailResult = await emailService.SendEmailAsync(
+            to: userResult.Value.Email,
+            subject: "Password reset request",
+            body: emailBody,
+            isHtml: true
+        );
 
         return emailResult.IsSuccess ? Result.Success() : Result.Failure("Failed to send reset email", 400);
     }

@@ -48,7 +48,16 @@ public class RegisterCommandHandler(
         {
             try
             {
-                await emailService.SendEmailAsync(creationResult.Value.Email, "Email confirmation", confirmationUrl);
+                var emailBody = emailService.BuildEmailTemplate(
+                title: "Verify your email address",
+                message: "Thank you for signing up. Please confirm your email address by clicking the button below.",
+                actionUrl: confirmationUrl,
+                actionText: "Verify email"
+                );
+                await emailService.SendEmailAsync(to: request.Email,
+                    subject: "Email verification",
+                    body: emailBody,
+                    isHtml: true);
             }
             catch (Exception ex)
             {

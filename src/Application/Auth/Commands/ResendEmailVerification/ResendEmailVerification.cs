@@ -41,7 +41,20 @@ public class ResendEmailVerificationCommandHandler(
             return Result.Failure(saveTokenResult.Error!, saveTokenResult.Code);
 
         string confirmationUrl = linkService.BuildEmailConfirmationLink(verificationTokenResult.Value);
-        await emailService.SendEmailAsync(currentUserResult.Value.Email, "Email confirmation", confirmationUrl);
+        var emailBody = emailService.BuildEmailTemplate(
+            title: "Verify your email address",
+            message:
+                "You recently requested to verify your email address. " +
+                "Please click the button below to complete the verification process.",
+            actionUrl: confirmationUrl,
+            actionText: "Verify email address");
+
+        await emailService.SendEmailAsync(
+            to: currentUserResult.Value.Email,
+            subject: "Confirm your email address",
+            body: emailBody,
+            isHtml: true
+        );
 
         return Result.Success();
     }
