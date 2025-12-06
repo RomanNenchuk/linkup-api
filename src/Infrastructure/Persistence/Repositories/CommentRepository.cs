@@ -14,6 +14,7 @@ public class CommentRepository(ApplicationDbContext dbContext) : ICommentReposit
     public Task<List<PostComment>> GetPostCommentsAsync(string postId, CancellationToken ct)
     {
         return dbContext.PostComments
+            .Include(c => c.PostCommentReactions)
             .Where(c => c.PostId == postId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(ct);
