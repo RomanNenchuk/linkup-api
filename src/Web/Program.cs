@@ -20,16 +20,12 @@ using Web.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-builder.Services.Configure<JwtOptions>(
-    builder.Configuration.GetSection(JwtOptions.SectionName));
-builder.Services.Configure<CloudinaryOptions>(
-    builder.Configuration.GetSection(CloudinaryOptions.SectionName));
-builder.Services.Configure<SmtpOptions>(
-    builder.Configuration.GetSection(SmtpOptions.SectionName));
-builder.Services.Configure<ClientOptions>(
-    builder.Configuration.GetSection(ClientOptions.SectionName));
-builder.Services.Configure<LocationIqOptions>(
-    builder.Configuration.GetSection(LocationIqOptions.SectionName));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.Configure<ClientOptions>(builder.Configuration.GetSection(ClientOptions.SectionName));
+builder.Services.Configure<LocationIqOptions>(builder.Configuration.GetSection(LocationIqOptions.SectionName));
+builder.Services.Configure<PostOptions>(builder.Configuration.GetSection(PostOptions.SectionName));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICookieService, CookieService>();
 builder.Services.AddMemoryCache();

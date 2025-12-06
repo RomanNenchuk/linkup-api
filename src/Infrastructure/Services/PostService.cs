@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.Common.DTOs;
 using Application.Common.Interfaces;
+using Application.Common.Options;
 using Application.Posts.Commands.CreatePost;
 using Application.Posts.Commands.EditPost;
 using Application.Posts.Queries.GetPosts;
@@ -10,13 +11,15 @@ using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 
 namespace Infrastructure.Services;
 
 public class PostService(IMapper mapper, UserManager<ApplicationUser> userManager, ICurrentUserService currentUser,
-    ICloudinaryService cloudinaryService, IPostRepository postRepo, IUserFollowRepository userFollowRepo)
+    ICloudinaryService cloudinaryService, IPostRepository postRepo, IUserFollowRepository userFollowRepo,
+    IOptions<PostOptions> options)
     : IPostService
 {
     public async Task<Result<string>> CreatePostAsync(CreatePostDto dto)
@@ -49,13 +52,14 @@ public class PostService(IMapper mapper, UserManager<ApplicationUser> userManage
 
     public async Task<Result<PagedResult<PostResponseDto>>> GetTopPostsAsync(GetPostsQuery query, CancellationToken ct)
     {
-        var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
+        var days = options.Value.TopPostsRangeDays;
+        var timeAgo = DateTime.UtcNow.AddDays(-days);
 
         int offset = 0;
         if (!string.IsNullOrEmpty(query.Cursor) && int.TryParse(query.Cursor, out var parsed))
             offset = parsed;
 
-        var posts = await postRepo.GetTopPostsAsync(oneWeekAgo, offset, query.PageSize, query.Params.Latitude,
+        var posts = await postRepo.GetTopPostsAsync(timeAgo, offset, query.PageSize, query.Params.Latitude,
             query.Params.Longitude, query.Params.RadiusKm, ct);
 
         var result = await BuildPagedPostResultAsync(posts, query, ct);
