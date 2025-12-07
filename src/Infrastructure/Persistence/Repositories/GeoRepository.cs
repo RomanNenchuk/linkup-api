@@ -123,8 +123,11 @@ public class GeoRepository(ApplicationDbContext dbContext) : IGeoRepository
 
     public async Task<List<TimestampedPostLocationDto>> GetUserPostLocationsAsync(string userId, CancellationToken ct)
     {
-        return await dbContext.Posts
+        var posts = await dbContext.Posts
             .Where(p => p.AuthorId == userId && p.Location != null)
+            .ToListAsync(ct);
+
+        var points = posts
             .Select(p => new TimestampedPostLocationDto
             {
                 PostId = p.Id,
@@ -132,6 +135,8 @@ public class GeoRepository(ApplicationDbContext dbContext) : IGeoRepository
                 Longitude = p.Location.X,
                 CreatedAt = p.CreatedAt
             })
-            .ToListAsync(ct);
+            .ToList();
+
+        return points;
     }
 }
